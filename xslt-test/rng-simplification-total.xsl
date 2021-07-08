@@ -17,7 +17,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.2"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.3">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.3">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -33,13 +33,11 @@
 	
 	<!-- 7.3 -->
 	
-	
-	
 	<xsl:template match="/" mode="step7.3">
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.3"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.4">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.4">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -69,7 +67,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.4"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.5">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.5">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -96,7 +94,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.5"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.7">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.7">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -120,7 +118,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.7"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.8">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.8">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -155,7 +153,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.8"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.9">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.9">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -187,7 +185,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.9"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.10">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.10">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -217,7 +215,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.10"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.11">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.11">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -244,7 +242,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.11"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.12">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.12">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -274,7 +272,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.12"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.13">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.13">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -294,7 +292,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.13"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.14">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.14">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -366,7 +364,7 @@
 				<xsl:variable name="newOut">
 					<xsl:element name="{$node-name}">
 						<xsl:copy-of select="$out"/>
-						<xsl:apply-templates select="$left" mode="step7.13"/>
+						<xsl:apply-templates select="exsl:node-set($left)" mode="step7.13"/>
 					</xsl:element>
 				</xsl:variable>
 				<xsl:call-template name="reduce7.13">
@@ -386,7 +384,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.14"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.15">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.15">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -409,7 +407,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.15"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.16">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.16">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -432,7 +430,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.16"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.18">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.18">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -457,7 +455,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.18"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.19">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.19">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -493,7 +491,7 @@
 				<xsl:variable name="newOut">
 					<xsl:element name="{$node-name}">
 						<xsl:copy-of select="$out"/>
-						<xsl:apply-templates select="$left/*" mode="step7.18"/>
+						<xsl:apply-templates select="exsl:node-set($left/*)" mode="step7.18"/>
 					</xsl:element>
 				</xsl:variable>
 				<xsl:call-template name="start7.18">
@@ -529,7 +527,7 @@
 				<xsl:variable name="newOut">
 					<xsl:element name="{$node-name}">
 						<xsl:copy-of select="$out"/>
-						<xsl:apply-templates select="$left/*" mode="step7.18"/>
+						<xsl:apply-templates select="exsl:node-set($left/*)" mode="step7.18"/>
 					</xsl:element>
 				</xsl:variable>
 				<xsl:call-template name="define7.18">
@@ -549,7 +547,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.19"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.20">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.20">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -621,7 +619,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.20"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.22">
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.22">
 		</xsl:apply-templates>
 	</xsl:template>
 	
@@ -663,7 +661,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.22"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.23"/>
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.23"/>
 	</xsl:template>
 	
 	<xsl:template match="@*|node()" mode="step7.22">
@@ -689,7 +687,7 @@
 		<xsl:variable name="thisIteration" select="$thisIterationRtf"/>
 		<xsl:choose>
 			<xsl:when test="$thisIteration//@updated">
-				<xsl:apply-templates select="$thisIteration/rng:grammar" mode="step7.22"/>
+				<xsl:apply-templates select="exsl:node-set($thisIteration/rng:grammar)" mode="step7.22"/>
 			</xsl:when>
 			<xsl:otherwise>
 				<xsl:copy-of select="$thisIterationRtf"/>
@@ -723,7 +721,7 @@
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.23"/>
 		</xsl:variable>
-		<xsl:apply-templates select="$step" mode="step7.24"/>
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.24"/>
 	</xsl:template>
 
 	<xsl:template match="@*|node()" mode="step7.23" priority="-1">

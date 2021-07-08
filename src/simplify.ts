@@ -13,12 +13,12 @@ try {
 
 export function simplify(xml: string): string {
 	const serializer = new XMLSerializer();
+	console.log(stylesheet);
 
 	const doc = parser.parseFromString(xml, 'application/xml');
 	console.log(doc);
 
-
-	const simplified = proc.transformToDocument(doc);
+	const simplified = proc.transformToFragment(doc, document);
 	debugger;
 	return serializer.serializeToString(simplified);
 }
