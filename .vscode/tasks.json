@@ -1,0 +1,20 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "xslt",
+			"label": "xsl",
+			"xsltFile": "${workspaceFolder}/xslt-test/rng-simplification-total.xsl",
+			"xmlSource": "${workspaceFolder}/xslt-test/TEILex0.rng.xml",
+			"resultPath": "${workspaceFolder}/xslt-test/result1.xml",
+			"group": {
+				"kind": "xsl",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$saxon-xslt"
+			],
+			"saxonJar": "E:/programs/SaxonHE10-5J/saxon-he-10.5.jar"
+		}
+	]
+}
