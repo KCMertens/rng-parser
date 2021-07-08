@@ -1,24 +1,26 @@
 <template>
 	<div>
-		<pre v-if="formattedXml" style="overflow: auto; max-height: 500px; max-width: 100%;">{{formattedXml}}</pre>
+		<pre v-if="simplifiedXml" style="overflow: auto; max-height: 500px; max-width: 100%;">{{simplifiedXml}}</pre>
 
+		<h2 v-if="loading">Loading, this may take a while...</h2>
 		<div class="error" v-for="e in error" v-if="e" :key="e">{{e}}</div>
-		<!-- <Parser v-if="doc" :doc="parsedXml"/> -->
+		<Parser v-if="parsedXml" :doc="parsedXml"/>
 	</div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue';
-import format from 'xml-formatter';
 import { simplify } from './simplify';
-
-// import Parser from './Parser.vue';
+import Parser from '@/Parser.vue';
 
 export default Vue.extend({
-	// components: { Parser },
+	components: { Parser },
 	data: () => ({
 		originalXml: '',
+		simplifiedXml: '',
+		nonce: 0,
 		error: [] as Array<string|null>,
+		loading: false
 	}),
 	created() {
 		const el = document.querySelector('.rng textarea')! as HTMLTextAreaElement;
@@ -28,18 +30,41 @@ export default Vue.extend({
 		});
 	},
 	computed: {
-		simplifiedXml(): string { try { this.error[0] = null; return simplify(this.originalXml); } catch (e) { this.error[0] = e.message; return ''; }},
-		formattedXml(): string { try { this.error[1] = null; return format(this.simplifiedXml, {indentation: ' '}); } catch (e) { this.error[1] = e.message; return ''; }},
 		parsedXml(): Document|null { 
+			if (!this.simplifiedXml) return null;
+
 			try {
-				this.error[2] = null;
+				this.error[1] = null;
 				const parser = new DOMParser();
 				return parser.parseFromString(this.simplifiedXml, 'application/xml');
 			} catch (e) {
-				this.error[2] = e.message;
+				this.error[1] = e.message;
 				return null;
 			}
 		}
+	},
+	watch: {
+		originalXml() { 
+			const id = ++this.nonce;
+			if (!this.originalXml) {
+				this.simplifiedXml = '';
+				return;
+			};
+
+			this.loading = true;
+			simplify(this.originalXml)
+			.then(r => {
+				if (this.nonce === id) {
+					this.simplifiedXml = r;
+					this.error[0] = null;
+					this.loading = false;
+				}
+				else console.warn(`outdated result, id=${id}, nonce=${this.nonce}`);
+			})
+			.catch(e => {
+				this.error[0] = e.message;
+			})
+		},
 	}
 });
 

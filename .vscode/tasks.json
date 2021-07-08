@@ -15,6 +15,11 @@
 				"$saxon-xslt"
 			],
 			"saxonJar": "E:/programs/SaxonHE10-5J/saxon-he-10.5.jar"
+		}, {
+			"type": "npm",
+			"label": "sef",
+			"script": "sef"
 		}
+		
 	]
 }

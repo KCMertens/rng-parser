@@ -1,25 +1,18 @@
 // import formatXml from 'xml-formatter';
-import stylesheet from '@/../xslt-test/rng-simplification-total.xsl';
+import stylesheet from '@/../xslt-test/rng-simplification-total.sef.json';
+//@ts-ignore
 
-const parser = new DOMParser();
-const proc = new XSLTProcessor();
-try {
-	proc.importStylesheet(parser.parseFromString(stylesheet, 'text/xml'));
-} catch (e) {
-	console.error('failed to import stylesheet');
-	console.error(e);
-	console.log(stylesheet);
-}
-
-export function simplify(xml: string): string {
-	const serializer = new XMLSerializer();
-	console.log(stylesheet);
-
-	const doc = parser.parseFromString(xml, 'application/xml');
-	console.log(doc);
-
-	const simplified = proc.transformToFragment(doc, document);
-	debugger;
-	return serializer.serializeToString(simplified);
+export function simplify(xml: string): Promise<string> {
+	const input = {
+		stylesheetText: JSON.stringify(stylesheet),
+		sourceText: xml,
+		destination: 'serialized'
+	};
+	//@ts-ignore
+	return SaxonJS.transform(input, 'serialized').then((r: any) => {
+		// @ts-ignore
+		console.log(r.principalResult);
+		return r.principalResult;
+	});
 }
 

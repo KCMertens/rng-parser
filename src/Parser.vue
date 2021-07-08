@@ -9,130 +9,102 @@ const child = (parent: Element, querySelector: string) => children(parent, query
 
 const serializer = new XMLSerializer();
 
+type rngElement = {
+	id: string;
+	element: string;
+	attributes: string[];
+	allowText: boolean;
+	allowEmpty: boolean;
+	allowedChildren: string[];
+}
+
+type rngAttribute = {
+	id: string; 
+	name: string;
+	values: string[];
+	optional: boolean;
+	pattern: string|null;
+}
+
+
 import Vue from 'vue';
 export default Vue.extend({
 	props: {
 		doc: XMLDocument,
 	},
+	data: () => ({
+		attributeCache: {} as {
+			[name: string]: rngAttribute[]
+		},
+		nextAttributeId: 0
+	}),
 	computed: {
 		parseTree(): any {
-			const d = this.doc;
-			
+			if (!this.doc) return null;
 
+			const d = this.doc.documentElement;
 
-
-			return undefined;
+			return {
+				elements: [...d.querySelectorAll('define')].map(el => this.element(el)).reduce((map, cur) => {
+					map[cur.id] = cur;
+					return map;
+				}, {} as {[id: string]: rngElement}),
+				attributes: Object.values(this.attributeCache).flat().reduce((map, cur) => {
+					map[cur.id] = cur;
+					return map;
+				}, {} as {[id: string]: rngAttribute}),
+				root: this.root(d),
+			}
 		}
 	},
 	methods: {
-		// grammar	  ::=  	<grammar> <start> top </start> define* </grammar>
-		grammar(n: Element) {
-			return {
-				root: this.top(n.querySelector('start')!),
-				definitions: [...n.querySelectorAll('define')].map(node => this.define(node)).reduce((acc, d) => { acc[d.name] = d; return acc; }, {}),
-			}
+		root(ctx: Element): string {
+			return ctx.querySelector('start ref')!.getAttribute('name')!;
 		},
-		// define	  ::=  	<define name="NCName"> <element> nameClass top </element> </define>
-		define(n: Element) {
-			
+		element(ctx: Element): any {
+			const defName = ctx.getAttribute('name');
+			const elName = ctx.querySelector('name')!.textContent;
+			const attributes = [...ctx.querySelectorAll('attribute')].map(el => this.attribute(el));
+			const allowText = ctx.querySelector('text') != null;
+			const allowEmpty = ctx.querySelector('empty') != null;
+			const allowedChildren = [...ctx.querySelectorAll('ref')].map(el => el.getAttribute('name')!);
+
 			return {
-				type: 'element',
-				name: n.getAttribute('name'),
-				elementName: n.querySelector('element > name')!.textContent
+				id: defName,
+				element: elName,
+				attributes,
+				allowText,
+				allowEmpty,
+				allowedChildren
 			};
 		},
-		// top	  ::=  	<notAllowed/>
-			// | pattern
-		top(ctx: Element) {
-			if (!ctx) { return; }
-			let data: any;
-			if (data = child(ctx, 'notAllowed')) {
-				return null;
-			} 
-			data = this.pattern(ctx); 
-			if (!data) return null;
 
-		},
-		// pattern	  ::=  	<empty/>
-		// | nonEmptyPattern
-		pattern(n: Element): string {
-			if (!n) { return ''; }
-			return '';
+		attribute(ctx: Element): any {
+			const name = ctx.querySelector('name')!.textContent!;
+			const optional = ctx.getAttribute('optional') != null;
+			const values = [...ctx.querySelectorAll('value')].map(el => el.textContent!);
+			const pattern = ctx.querySelector('param[name="pattern"]')?.textContent || null;
 
-		},
-		// nonEmptyPattern	  ::=  	<text/>
-		// | <data type="NCName" datatypeLibrary="anyURI"> param* [exceptPattern] </data>
-		// | <value datatypeLibrary="anyURI" type="NCName" ns="string"> string </value>
-		// | <list> pattern </list>
-		// | <attribute> nameClass pattern </attribute>
-		// | <ref name="NCName"/>
-		// | <oneOrMore> nonEmptyPattern </oneOrMore>
-		// | <choice> pattern nonEmptyPattern </choice>
-		// | <group> nonEmptyPattern nonEmptyPattern </group>
-		// | <interleave> nonEmptyPattern nonEmptyPattern </interleave>
-		nonEmptyPattern(n: Element) {
-			if (!n) { return; }
-
+			return this.findOrCreateAttribute(name, optional, values, pattern);
 		},
 
-		// param	  ::=  	<param name="NCName"> string </param>
-		param(n: Element) {
-			if (!n) { return; }
+		findOrCreateAttribute(name: string, optional: boolean, values: string[], pattern: string|null): string {
+			const list = (this.attributeCache[name] = (this.attributeCache[name] || []));
+			const foundAttribute = list.find(a => 
+				a.name === name && 
+				a.optional === optional &&
+				a.pattern === pattern && 
+				a.values.every((v, i) => v === values[i])
+			);
+			if (foundAttribute) return foundAttribute.id;
 
-		},
-		// exceptPattern	  ::=  	<except> pattern </except>
-		exceptPattern(n: Element) {
-			if (!n) { return; }
-
-		},
-		// nameClass	  ::=  	<anyName> [exceptNameClass] </anyName>
-		// | <nsName ns="string"> [exceptNameClass] </nsName>
-		// | <name ns="string"> NCName </name>
-		// | <choice> nameClass nameClass </choice>
-		nameClass(parent: Element, mustExist: boolean = false): {
-			blacklist: string[],
-			any: boolean,
-			whitelist: string[],
-		} {
-			// je wil dit niet uitzoeken in de parent
-			// dus het moet in de functie zelf
-			// die moet dan de parsing doen
-			// maar soms wil je juist dat de node uit zichzelf al opgepakt wordt
-			// dus je wil een functie die extract
-			// en een die parsed
-			// dan kun je zomaar iets in de extractie functie gooien
-			// en dan roept die de parse functie aan
-			
-			const stack: Element[] = [];
-			stack.push(...parent.children);
-
-			
-			const parses: Array<{any: boolean, blacklist: string[], whitelist: string[]}> = [];
-			let ctx: Element|undefined;
-			while (ctx = stack.shift()) {
-				switch (ctx.tagName) {
-					case 'anyName':
-					case 'nsName': parses.push({any: true, blacklist: blacklist(ctx), whitelist: []}); continue;
-					case 'name': parses.push({any: false, blacklist: [], whitelist: name(ctx)}); continue;
-					case 'choice': stack.push(...ctx.children); continue;
-					default: throw new Error(`Unexpected element ${ctx.tagName} where name declaration was expected at ${serializer.serializeToString(parent)}`);
-				}
+			const newAttribute = {
+				name, optional, values, pattern,
+				id: `${name}_${this.nextAttributeId++}`
 			}
 
-			// check if we got what we needed
-			if (mustExist && parses.length === 0) throw new Error(`Missing required name declaration at ${serializer.serializeToString(parent)}`);
-
-
-			// merge declarations (if there was a choice)
-			const any: boolean = !!parses.find(o => o.any);
-			const whitelist = any ? [] : parses.reduce<string[]>((list, o) => { list.push(...o.whitelist); return list;}, []);
-			const blacklist = whitelist.length ? [] : parses.reduce<string[]>((list, o) => { list.push(...o.blacklist); return list;}, []);
-		
-			return { any, whitelist, blacklist }
-		},
-		// exceptNameClass	  ::=  	<except> nameClass </except>
-		exceptNameClass(n: Element): string {
-			return n.textContent!;
+			list.push(newAttribute);
+			return newAttribute.id;
 		}
 	}
 })

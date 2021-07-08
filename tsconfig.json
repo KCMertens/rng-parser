@@ -10,6 +10,8 @@
 		"noImplicitAny": true,
 		"strictNullChecks": true,
 		"noImplicitThis": true,
+
+		"resolveJsonModule": true,
 		
 		"lib": [
 			"es2017",
