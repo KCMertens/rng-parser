@@ -1,22 +1,41 @@
 const path = require('path');
 
 module.exports = {
-	entry: './src/index.ts',
+	entry: {
+		interface: './src/interface/index.ts',
+		parser: './src/parser/index.ts'
+	},
 	module: {
-		rules: [
-			{
-				test: /\.tsx?$/,
-				use: 'ts-loader',
-				exclude: /node_modules/,
-			},
-		],
+		rules: [{
+			test: /\.css$/,
+			use: ['vue-style-loader', 'css-loader'],
+		}, {
+			test: /\.scss$/,
+			use: ['vue-style-loader', 'css-loader', 'sass-loader']
+		}, {
+			test: /\.vue$/i,
+			use: 'vue-loader',
+		}, {
+			test: /\.tsx?$/,
+			exclude: /node_modules/,
+			loader: 'ts-loader',
+			options: {
+				appendTsSuffixTo: [/\.vue$/i],
+			}
+		}, {
+			test: /\.xsl$/i,
+			use: 'raw-loader'
+		}],
 	},
 	resolve: {
 		extensions: ['.tsx', '.ts', '.js'],
 	},
 	output: {
-		filename: 'bundle.js',
+		filename: '[name].js',
+		// Path on disk for output file
 		path: path.resolve(__dirname, 'dist'),
+		// Path in webpack-dev-server for compiled files (has priority over disk files in case both exist)
+		publicPath: '/dist/',
 	},
 	resolve: {
 		extensions: ['.js', '.ts'], // enable autocompleting .ts and .js extensions when using import '...'

@@ -716,7 +716,7 @@
 	</xsl:template>
 	
 	<!-- 7.23 custom simplification -->
-	
+
 	<xsl:template match="/" mode="step7.23">
 		<xsl:variable name="step">
 			<xsl:apply-templates mode="step7.23"/>
@@ -733,19 +733,42 @@
 
 	<xsl:template match="rng:notAllowed" mode="step7.23"/>
 
-	<xsl:template match="rng:choice/rng:choice|rng:group/rng:group" mode="step7.23">
-		<!-- flatten nested groups and choices -->
+	<!-- flatten nested groups -->
+	<xsl:template match="rng:group/rng:group" mode="step7.23">
 		<xsl:apply-templates mode="step7.23"/> 
 	</xsl:template>
 
+	<!-- flatten nested choices that do not make anything more specific -->
+	<xsl:template match="rng:choice/rng:choice" mode="step7.23">
+		<xsl:apply-templates mode="step7.23"/>
+	</xsl:template>
+
+	<!-- simplify optional attributes -->
 	<xsl:template match="rng:choice[rng:empty and rng:attribute]" mode="step7.23">
 		<attribute>
-			<xsl:attribute name="optional"></xsl:attribute>
-			<xsl:apply-templates mode="step7.23"/>
+			<xsl:attribute name="optional"/>
+			<xsl:apply-templates select="rng:attribute/*|rng:attribute/@*" mode="step7.23"/>
 		</attribute>
 	</xsl:template>
 
+	<xsl:template match="rng:oneOrMore[not(.//*[self::rng:ref or self::rng:text or self::rng:attribute])]" mode="step7.23"/>
+
+
+	<!-- seriesStmt-d1406e5356 -->
+	<!-- glyph-d1406e2638 -->
+	<!-- idno-d1406e5263 -->
+	<!-- tagUsage-d1406e5463 -->
+
+
 	<!-- 7.24 -->
+
+	<xsl:template match="/" mode="step7.24">
+		<xsl:variable name="step">
+			<xsl:apply-templates mode="step7.24"/>
+		</xsl:variable>
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.25"/>
+	</xsl:template>
+
 	<xsl:template match="@*|node()" mode="step7.24" priority="-1">
 		<xsl:copy>
 			<xsl:apply-templates select="@*" mode="step7.24"/>
@@ -753,20 +776,152 @@
 		</xsl:copy>
 	</xsl:template>
 
+	
+	<xsl:template match="rng:attribute/rng:name" mode="step7.24"/>
+	
 	<xsl:template match="rng:attribute" mode="step7.24">
-		<xsl:copy>
-			<xsl:apply-templates select=".//rng:name|.//rng:param|.//rng:value|@*" mode="step7.24"/>
-		</xsl:copy>
+		<attribute>
+			<xsl:attribute name="name" select="rng:name/text()"/>
+			<xsl:apply-templates select=".//rng:param|.//rng:value|@*" mode="step7.24"/>
+		</attribute>
 	</xsl:template>
 
 	
-	<xsl:template match="rng:element" mode="step7.24">
+
+	<xsl:template match="rng:group" mode="step7.24">
+		<xsl:param name="optional" select="false()"/>
+		<xsl:param name="multiple" select="false()"/>
+		
+		<xsl:choose>
+			<xsl:when test="parent::rng:choice and not(not(self::rng:choice))">
+				<xsl:apply-templates select="rng:choice/*" mode="step7.24">
+					<xsl:with-param name="optional" select="$optional"/>
+					<xsl:with-param name="multiple" select="$multiple"/>
+				</xsl:apply-templates>
+			</xsl:when>
+			<xsl:when test="parent::rng:group or (count(*) = 1)">
+				<xsl:apply-templates mode="step7.24">
+					<xsl:with-param name="optional" select="$optional"/>
+					<xsl:with-param name="multiple" select="$multiple"/>
+				</xsl:apply-templates>
+			</xsl:when>
+			<xsl:otherwise>
+				<group>
+					<xsl:apply-templates select="@*" mode="step7.24"/>
+					<xsl:apply-templates mode="step7.24">
+						<xsl:with-param name="optional" select="$optional"/>
+						<xsl:with-param name="multiple" select="$multiple"/>
+					</xsl:apply-templates>
+				</group>
+			</xsl:otherwise>
+		</xsl:choose>
+	</xsl:template>
+
+	<xsl:template match="rng:choice" mode="step7.24">
+		<xsl:param name="optional" select="false()"/>
+		<xsl:param name="multiple" select="false()"/>
+		<xsl:choose>
+			<xsl:when test="count(*) = 1">
+				<xsl:apply-templates mode="step7.24">
+					<xsl:with-param name="optional" select="$optional"/>
+					<xsl:with-param name="multiple" select="$multiple"/>
+				</xsl:apply-templates>
+			</xsl:when>
+			<xsl:when test="rng:empty"> 
+				<xsl:apply-templates mode="step7.24">
+					<xsl:with-param name="optional" select="true()"/>
+					<xsl:with-param name="multiple" select="$multiple"/>
+				</xsl:apply-templates>
+			</xsl:when>
+			<xsl:when test="parent::rng:choice or $multiple">
+				<xsl:apply-templates mode="step7.24">
+					<xsl:with-param name="optional" select="$optional"/>
+					<xsl:with-param name="multiple" select="$multiple"/>
+				</xsl:apply-templates>
+			</xsl:when>
+			<xsl:otherwise>
+				<choice>
+					<xsl:apply-templates select="@*" mode="step7.24"/>
+					<xsl:apply-templates mode="step7.24">
+						<xsl:with-param name="optional" select="$optional"/>
+						<xsl:with-param name="multiple" select="$multiple"/>
+					</xsl:apply-templates>
+				</choice>
+			</xsl:otherwise>
+		</xsl:choose>
+
+	</xsl:template>
+	
+	
+	
+	<xsl:template match="rng:ref|rng:text" mode="step7.24">
+		<xsl:param name="optional" select="false()"/>
+		<xsl:param name="multiple" select="false()"/>
 		<xsl:copy>
-			<xsl:apply-templates select="@*|.//(rng:ref|rng:text|rng:empty|rng:attribute|rng:except|rng:name)[not(ancestor::rng:attribute or ancestor::rng:except)]" mode="step7.24"/>
+			<xsl:apply-templates select="@*" mode="step7.24"/>
+			<xsl:if test="$optional"><xsl:attribute name="optional"/></xsl:if>
+			<xsl:if test="$multiple"><xsl:attribute name="multiple"/></xsl:if>
+		</xsl:copy>
+	</xsl:template>
+	
+	<xsl:template match="rng:empty" mode="step7.24"/>
+
+	
+	<xsl:template match="rng:oneOrMore" mode="step7.24">
+		<xsl:param name="optional" select="false()"/>
+		
+		<xsl:apply-templates mode="step7.24">
+			<xsl:with-param name="optional" select="$optional"/>
+			<xsl:with-param name="multiple" select="true()"/>
+		</xsl:apply-templates>
+	</xsl:template>
+	
+
+	<!-- 7.25 collapse new nested groups -->
+	<xsl:template match="/" mode="step7.25">
+		<xsl:variable name="step">
+			<xsl:apply-templates mode="step7.25"/>
+		</xsl:variable>
+		<xsl:apply-templates select="exsl:node-set($step)" mode="step7.26"/>
+	</xsl:template>
+
+	<xsl:template match="@*|node()" mode="step7.25" priority="-1">
+		<xsl:copy>
+			<xsl:apply-templates select="@*" mode="step7.25"/>
+			<xsl:apply-templates mode="step7.25"/>
 		</xsl:copy>
 	</xsl:template>
 
-	<xsl:template match="rng:name/@ns" mode="step7.24"/>
-	<xsl:template match="rng:value/@ns|rng:value/@dataTypeLibrary" mode="step7.24"/>
+	<xsl:template match="rng:group/rng:group" mode="step7.25">
+		<xsl:apply-templates mode="step7.25"/>
+	</xsl:template>
+
+	<!-- 7.26 dedupe refs -->
+
+	<xsl:template match="@*|node()" mode="step7.26" priority="-1">
+		<xsl:copy>
+			<xsl:apply-templates select="@*" mode="step7.26"/>
+			<xsl:apply-templates mode="step7.26"/>
+		</xsl:copy>
+	</xsl:template>
+	
+	<!-- remove all but the last instance of the ref. -->
+	<!-- for the last instance - merge optionality and multiple-ity -->
+	<!-- <xsl:template match="rng:ref[@name = preceding-sibling::rng:ref/@name]" mode="step7.25" priority="2"/> -->
+	<xsl:template match="rng:ref" mode="step7.26">
+		<xsl:variable name="name" select="@name"/>
+		<xsl:choose>
+			<xsl:when test="following-sibling::rng:ref[@name = $name]"/>
+			<xsl:otherwise>
+				<xsl:copy>
+					<xsl:attribute name="name" select="@name"/>
+					<xsl:if test="@optional or preceding-sibling::rng:ref[@name = $name and @optional]"><xsl:attribute name="optional"/></xsl:if>
+					<xsl:if test="@multiple or preceding-sibling::rng:ref[@name = $name and @multiple]"><xsl:attribute name="multiple"/></xsl:if>
+				</xsl:copy>
+			</xsl:otherwise>
+		</xsl:choose>
+	</xsl:template>
+
+	
 
 </xsl:stylesheet>

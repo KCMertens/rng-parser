@@ -2,7 +2,7 @@ import Vue from 'vue';
 
 import RootComponent from '@/Editor.vue';
 
-import '@/SaxonJS2.rt.js'; // global saxonjs
+import '@/lib/SaxonJS2.rt.js'; // global saxonjs
 
 Vue.config.productionTip = false;
 

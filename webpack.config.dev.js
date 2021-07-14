@@ -3,6 +3,10 @@ const { VueLoaderPlugin } = require('vue-loader');
 
 module.exports = {
 	entry: './src/index.ts',
+	// {
+	// 	interface: './src/interface/index.ts',
+	// 	parser: './src/parser/index.ts'
+	// },
 	module: {
 		rules: [{
 			test: /\.css$/,
@@ -21,13 +25,16 @@ module.exports = {
 				appendTsSuffixTo: [/\.vue$/i],
 			}
 		}, {
-			test: /\.xsl$/i,
+			test: /\.xsl|\.xml$/i,
 			use: 'raw-loader'
 		}],
 	},
 	output: {
 		filename: 'bundle.js',
+		// filename: '[name].js',
+		// Path on disk for output file
 		path: path.resolve(__dirname, 'dist'),
+		// Path in webpack-dev-server for compiled files (has priority over disk files in case both exist)
 		publicPath: '/dist/',
 	},
 	resolve: {
