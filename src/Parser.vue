@@ -1,5 +1,10 @@
 <template>
-	<pre>{{parseTree}}</pre>
+	<div>
+		<h2>parse tree</h2>
+		<textarea readonly :value="JSON.stringify(parseTree, undefined, 2)"></textarea>
+		<h2>xema</h2>
+		<pre>{{xema}}</pre>
+	</div>
 </template>
 
 <script lang="ts">
@@ -9,31 +14,24 @@ const child = (parent: Element, querySelector: string) => children(parent, query
 
 const serializer = new XMLSerializer();
 
+const isRef = function(e: any): e is ref { return !!(e && e.id); }
 type ref = {
 	id: string;
 	optional: boolean;
 	multiple: boolean;
 }
 
-type rngChildSpecAnd = {
-	type: 'and';
-	elements: Array<ref|rngChildSpecOr>;
+type rngChildSpec = {
+	type: 'and'|'or';
+	children: Array<ref|rngChildSpec>;
 	allowText: boolean;
 }
-
-type rngChildSpecOr = {
-	type: 'or';
-	elements: Array<ref|rngChildSpecAnd>;
-	allowText: boolean;
-}
-
-type rngChildSpec = rngChildSpecAnd|rngChildSpecOr;
 
 type rngElement = {
 	id: string;
 	element: string;
 	attributes: string[];
-	allowedChildren: rngChildSpec[];
+	children: rngChildSpec[];
 }
 
 type rngAttribute = {
@@ -44,6 +42,33 @@ type rngAttribute = {
 	pattern: string|null;
 }
 
+type rng = {
+	root: string;
+	elements: { [id: string]: rngElement },
+	attributes: { [id: string]: rngAttribute; }
+}
+
+type xema = {
+	root: string;
+	elements: {
+		[id: string]: {
+			// inl=text+children, txt=text only, chd=children only
+			filling: 'inl'|'txt'|'chd'|'emp';
+			values: string[];
+			children: Array<{min: number, max: number|null, name: string}>;
+			attributes: {
+				[id: string]: {
+					optionality: 'optional'|'obligatory';
+					filling: 'txt'|'lst'; // whether to use value list?
+					options?: Array<{
+						value: string;
+						caption: string;
+					}>
+				}
+			}
+		}
+	}
+}
 
 class AttributeCache {
 	private cache: {[name: string]: rngAttribute[]} = {};
@@ -86,7 +111,7 @@ export default Vue.extend({
 		attributeCache: new AttributeCache(),
 	}),
 	computed: {
-		parseTree(): any {
+		parseTree(): rng|null {
 			if (!this.doc) return null;
 
 			const d = this.doc.documentElement;
@@ -99,6 +124,63 @@ export default Vue.extend({
 				attributes: this.attributeCache.map(),
 				root: this.root(d),
 			}
+		},
+		xema(): xema|null {
+			const t = this.parseTree;
+			if (!t) return null;
+
+			var xema: xema = {
+				root: t.root, 
+				elements: {},
+			};
+
+			Object.values(t.elements).forEach(e => {
+				const objectEl: xema['elements'][string] = {
+					filling: 'txt',
+					values: [], 
+					// type xmlElementChild
+					children: [],
+					attributes: {}
+				}; 
+			
+				let hasText = false;
+				let hasChildElements = false;
+				function hasRef(e: rngChildSpec|ref): boolean { return isRef(e) || !!e.children.find(c => hasRef(c)); }
+				
+				e.children.forEach(childGroup => {
+					hasText = hasText || childGroup.allowText;
+					hasChildElements = hasChildElements || hasRef(childGroup);
+				});
+				//select element type: inl=text+children, txt=text only, chd=children only
+				objectEl.filling = hasText ? hasChildElements ? 'inl' : 'txt' : hasChildElements ? 'chd' : 'emp'; 
+
+				//add allowed child elements, flattened, throw away choice and sequence
+				const add = (e: rngChildSpec|ref): any => isRef(e) 
+					? objectEl.children.push({
+						min: e.optional ? 0 : 1,
+						max: e.multiple ? 1 : null,
+						name: e.id
+					}) 
+					: e.children.forEach(c => add(c));
+				
+				e.children.forEach(add);
+
+				// add attributes for current element
+				e.attributes.forEach(a => {
+					const attDef = t.attributes[a];
+					objectEl.attributes[attDef.name] = {
+						optionality: attDef.optional ? 'optional' : 'obligatory',
+						filling: attDef.values.length ? 'lst' : 'txt',
+						options: attDef.values.length ? attDef.values.map(v => ({
+							value: v,
+							caption: v
+						})) : undefined
+					}
+				})
+
+				xema.elements[e.id] = objectEl;
+			});
+			return xema;
 		}
 	},
 	methods: {
@@ -116,10 +198,11 @@ export default Vue.extend({
 				id: defName,
 				attributes: [...ctx.querySelectorAll('attribute')].map(el => this.attribute(el)),
 				element: elName,
-				allowedChildren: children(ctx, 'group, choice').map<rngChildSpec>(e => {
+				children: children(ctx, 'group, choice').map<rngChildSpec>(e => {
 					switch (e.tagName) {
 						case 'group': return this._group(e);
 						case 'choice': return this._choice(e);
+						default: throw new Error(`Unexpected element ${e.tagName}`);
 					}
 				}),
 			}
@@ -127,34 +210,34 @@ export default Vue.extend({
 			return r;
 		},
 
-		_group(ctx: Element): any {
-			const r: rngChildSpecAnd = {
+		_group(ctx: Element): rngChildSpec {
+			const r: rngChildSpec = {
 				type: 'and',
 				allowText: false, 
-				elements: []
+				children: []
 			};
 
 			const stack = [...ctx.children];
 			let c: Element|undefined;
 			while ((c = stack.shift()) != null) {
 				switch (c.tagName) {
-					case 'choice': r.elements.push(this._choice(c)); continue;
+					case 'choice': r.children.push(this._choice(c)); continue;
 					case 'group': stack.push(...c.children); continue;
 					case 'attribute': continue; // parsed separately
 					case 'empty': continue; // empty as a child of group is meaningless.
 					case 'text': r.allowText = true; continue;
-					case 'ref': r.elements.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
+					case 'ref': r.children.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
 					default: console.warn(`unexpected element ${c.tagName} in <group> for element ${ctx.closest('define')!.getAttribute('name')!}`); continue;
 				}
 			}
 
 			return r;
 		},
-		_choice(ctx: Element): rngChildSpecOr {
-			const r: rngChildSpecOr = {
+		_choice(ctx: Element): rngChildSpec {
+			const r: rngChildSpec = {
 				type: 'or',
 				allowText: false, 
-				elements: []
+				children: []
 			};
 
 			const stack = [...ctx.children];
@@ -162,11 +245,11 @@ export default Vue.extend({
 			while ((c = stack.shift()) != null) {
 				switch (c.tagName) {
 					case 'choice': stack.push(...c.children); continue;
-					case 'group': r.elements.push(this._group(c)); continue;
+					case 'group': r.children.push(this._group(c)); continue;
 					case 'attribute': continue; // parsed separately
 					case 'empty': continue; // empty as a child of group is meaningless.
 					case 'text': r.allowText = true; continue;
-					case 'ref': r.elements.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
+					case 'ref': r.children.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
 					default: console.warn(`unexpected element ${c.tagName} in <group> for element ${ctx.closest('define')!.getAttribute('name')!}`); continue;
 				}
 			}
