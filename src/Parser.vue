@@ -10,9 +10,6 @@
 const children = (parent: Element, querySelector: string) => [...parent.querySelectorAll(querySelector)].filter(match => match.parentElement === parent);
 const child = (parent: Element, querySelector: string) => children(parent, querySelector)[0] || null;
 
-const serializer = new XMLSerializer();
-
-const isRef = function(e: any): e is ref { return !!(e && e.id); }
 type ref = {
 	id: string;
 	optional: boolean;
@@ -77,14 +74,16 @@ class AttributeCache {
 	}
 }
 
+import simplified from '../data/TEILex0.simplified.rng.xml';
+
+const parser = new DOMParser();
+const parsedXml = parser.parseFromString(simplified, 'text/xml');
 
 import Vue from 'vue';
 export default Vue.extend({
-	props: {
-		doc: XMLDocument,
-	},
 	data: () => ({
 		attributeCache: new AttributeCache(),
+		doc: parsedXml
 	}),
 	computed: {
 		parseTree(): rng|null {

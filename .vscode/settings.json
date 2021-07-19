@@ -1,3 +1,20 @@
 {
-    "editor.insertSpaces": false
+    "editor.insertSpaces": false,
+
+
+    "XSLT.tasks.saxonJar": "E:\\Programs\\SaxonHE10-5J\\saxon-he-10.5.jar",
+    
+    "triggerTaskOnSave.on": true,
+    "triggerTaskOnSave.tasks": {
+        "xsl": [
+            "data/rng-simplification.xsl"
+        ],
+        "sef": [
+            "data/rng-simplification.xsl"
+        ]
+    },
+
+    "eslint.workingDirectories": [
+        { "mode": "auto" }
+    ],
 }

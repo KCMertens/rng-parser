@@ -4,9 +4,9 @@
 		{
 			"type": "xslt",
 			"label": "xsl",
-			"xsltFile": "${workspaceFolder}/xslt-test/rng-simplification-total.xsl",
-			"xmlSource": "${workspaceFolder}/xslt-test/TEILex0.rng.xml",
-			"resultPath": "${workspaceFolder}/xslt-test/result1.xml",
+			"xsltFile": "${workspaceFolder}/data/rng-simplification.xsl",
+			"xmlSource": "${workspaceFolder}/data/TEILex0.rng.xml",
+			"resultPath": "${workspaceFolder}/data/TEILex0.simplified.rng.xml",
 			"group": {
 				"kind": "xsl",
 				"isDefault": true
@@ -20,6 +20,5 @@
 			"label": "sef",
 			"script": "sef"
 		}
-		
 	]
 }

@@ -1,6 +1,6 @@
 import Vue from 'vue';
 
-import RootComponent from '@/Editor.vue';
+import RootComponent from '@/Parser.vue';
 
 import '@/lib/SaxonJS2.rt.js'; // global saxonjs
 
