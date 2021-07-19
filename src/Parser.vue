@@ -2,8 +2,6 @@
 	<div>
 		<h2>parse tree</h2>
 		<textarea readonly :value="JSON.stringify(parseTree, undefined, 2)"></textarea>
-		<h2>xema</h2>
-		<pre>{{xema}}</pre>
 	</div>
 </template>
 
@@ -46,28 +44,6 @@ type rng = {
 	root: string;
 	elements: { [id: string]: rngElement },
 	attributes: { [id: string]: rngAttribute; }
-}
-
-type xema = {
-	root: string;
-	elements: {
-		[id: string]: {
-			// inl=text+children, txt=text only, chd=children only
-			filling: 'inl'|'txt'|'chd'|'emp';
-			values: string[];
-			children: Array<{min: number, max: number|null, name: string}>;
-			attributes: {
-				[id: string]: {
-					optionality: 'optional'|'obligatory';
-					filling: 'txt'|'lst'; // whether to use value list?
-					options?: Array<{
-						value: string;
-						caption: string;
-					}>
-				}
-			}
-		}
-	}
 }
 
 class AttributeCache {
@@ -125,63 +101,6 @@ export default Vue.extend({
 				root: this.root(d),
 			}
 		},
-		xema(): xema|null {
-			const t = this.parseTree;
-			if (!t) return null;
-
-			var xema: xema = {
-				root: t.root, 
-				elements: {},
-			};
-
-			Object.values(t.elements).forEach(e => {
-				const objectEl: xema['elements'][string] = {
-					filling: 'txt',
-					values: [], 
-					// type xmlElementChild
-					children: [],
-					attributes: {}
-				}; 
-			
-				let hasText = false;
-				let hasChildElements = false;
-				function hasRef(e: rngChildSpec|ref): boolean { return isRef(e) || !!e.children.find(c => hasRef(c)); }
-				
-				e.children.forEach(childGroup => {
-					hasText = hasText || childGroup.allowText;
-					hasChildElements = hasChildElements || hasRef(childGroup);
-				});
-				//select element type: inl=text+children, txt=text only, chd=children only
-				objectEl.filling = hasText ? hasChildElements ? 'inl' : 'txt' : hasChildElements ? 'chd' : 'emp'; 
-
-				//add allowed child elements, flattened, throw away choice and sequence
-				const add = (e: rngChildSpec|ref): any => isRef(e) 
-					? objectEl.children.push({
-						min: e.optional ? 0 : 1,
-						max: e.multiple ? 1 : null,
-						name: e.id
-					}) 
-					: e.children.forEach(c => add(c));
-				
-				e.children.forEach(add);
-
-				// add attributes for current element
-				e.attributes.forEach(a => {
-					const attDef = t.attributes[a];
-					objectEl.attributes[attDef.name] = {
-						optionality: attDef.optional ? 'optional' : 'obligatory',
-						filling: attDef.values.length ? 'lst' : 'txt',
-						options: attDef.values.length ? attDef.values.map(v => ({
-							value: v,
-							caption: v
-						})) : undefined
-					}
-				})
-
-				xema.elements[e.id] = objectEl;
-			});
-			return xema;
-		}
 	},
 	methods: {
 		root(ctx: Element): string {
