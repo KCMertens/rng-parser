@@ -40,6 +40,10 @@
 			// See https://github.com/sindresorhus/del/issues/88
 			"@types/jest"
 		],
-		"allowSyntheticDefaultImports": true
+		"allowSyntheticDefaultImports": true,
+
+		// Output type definitions for exported functions as separate .d.ts files in the /dist/ dir.
+		"declaration": true,
+		"declarationDir": "dist",
 	}
   }

@@ -2,11 +2,10 @@ const path = require('path');
 const { VueLoaderPlugin } = require('vue-loader');
 
 module.exports = {
-	entry: './src/index.ts',
-	// {
-	// 	interface: './src/interface/index.ts',
-	// 	parser: './src/parser/index.ts'
-	// },
+	entry: {
+		'rng-parser': './src/rng-parser.ts',
+		'index': './src/index.ts',
+	},
 	module: {
 		rules: [{
 			test: /\.css$/,
@@ -30,12 +29,13 @@ module.exports = {
 		}],
 	},
 	output: {
-		filename: 'bundle.js',
+		filename: '[name].js',
 		// filename: '[name].js',
 		// Path on disk for output file
 		path: path.resolve(__dirname, 'dist'),
 		// Path in webpack-dev-server for compiled files (has priority over disk files in case both exist)
 		publicPath: '/dist/',
+		clean: true, // clean previous outputs prior to compiling
 	},
 	resolve: {
 		extensions: ['.js', '.ts'], // enable autocompleting .ts and .js extensions when using import '...'

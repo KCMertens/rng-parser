@@ -2,33 +2,19 @@ const path = require('path');
 
 module.exports = {
 	entry: {
-		interface: './src/interface/index.ts',
-		parser: './src/parser/index.ts'
+		'rng-parser': './src/rng-parser.ts',
+		// interface: './src/interface/index.ts',
+		// parser: './src/parser/index.ts'
 	},
 	module: {
 		rules: [{
-			test: /\.css$/,
-			use: ['vue-style-loader', 'css-loader'],
-		}, {
-			test: /\.scss$/,
-			use: ['vue-style-loader', 'css-loader', 'sass-loader']
-		}, {
-			test: /\.vue$/i,
-			use: 'vue-loader',
-		}, {
 			test: /\.tsx?$/,
 			exclude: /node_modules/,
 			loader: 'ts-loader',
-			options: {
-				appendTsSuffixTo: [/\.vue$/i],
-			}
 		}, {
 			test: /\.xsl$/i,
 			use: 'raw-loader'
 		}],
-	},
-	resolve: {
-		extensions: ['.tsx', '.ts', '.js'],
 	},
 	output: {
 		filename: '[name].js',
@@ -36,6 +22,7 @@ module.exports = {
 		path: path.resolve(__dirname, 'dist'),
 		// Path in webpack-dev-server for compiled files (has priority over disk files in case both exist)
 		publicPath: '/dist/',
+		clean: true, // clean previous outputs prior to compiling
 	},
 	resolve: {
 		extensions: ['.js', '.ts'], // enable autocompleting .ts and .js extensions when using import '...'
@@ -45,5 +32,5 @@ module.exports = {
 			"@": path.join(__dirname, "src"),
 		}
 	},
-	devtool: "eval-source-map",
+	// devtool: "eval-source-map",
 };

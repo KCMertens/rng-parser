@@ -1,188 +1,60 @@
 <template>
 	<div>
 		<h2>parse tree</h2>
-		<textarea readonly :value="JSON.stringify(parseTree, undefined, 2)"></textarea>
+		<textarea id="parsetree" readonly :value="JSON.stringify(parseTree, undefined, 2)"></textarea>
+		<h2>xema tree</h2>
+		<textarea id="xematree" readonly :value="JSON.stringify(xema, undefined, 2)" style="width: 100%;"></textarea>
 	</div>
 </template>
 
 <script lang="ts">
-
-const children = (parent: Element, querySelector: string) => [...parent.querySelectorAll(querySelector)].filter(match => match.parentElement === parent);
-const child = (parent: Element, querySelector: string) => children(parent, querySelector)[0] || null;
-
-type ref = {
-	id: string;
-	optional: boolean;
-	multiple: boolean;
-}
-
-type rngChildSpec = {
-	type: 'and'|'or';
-	children: Array<ref|rngChildSpec>;
-	allowText: boolean;
-}
-
-type rngElement = {
-	id: string;
-	element: string;
-	attributes: string[];
-	children: rngChildSpec[];
-}
-
-type rngAttribute = {
-	id: string; 
-	name: string;
-	values: string[];
-	optional: boolean;
-	pattern: string|null;
-}
-
-type rng = {
-	root: string;
-	elements: { [id: string]: rngElement },
-	attributes: { [id: string]: rngAttribute; }
-}
-
-class AttributeCache {
-	private cache: {[name: string]: rngAttribute[]} = {};
-	private nextAttributeId = 0;
-
-	public getId(name: string, optional: boolean, pattern: string|null, values: string[]) {
-		const list = (this.cache[name] = (this.cache[name] || []));
-		const foundAttribute = list.find(a => 
-			a.name === name && 
-			a.optional === optional &&
-			a.pattern === pattern && 
-			a.values.every((v, i) => v === values[i])
-		);
-		if (foundAttribute) return foundAttribute.id;
-
-		const newAttribute = {
-			name, optional, values, pattern,
-			id: `${name}_${this.nextAttributeId++}`
-		}
-
-		list.push(newAttribute);
-		return newAttribute.id;
-	}
-
-	public map(): {[id: string]: rngAttribute} {
-		return Object.values(this.cache).flat().reduce((map, cur) => {
-			map[cur.id] = cur;
-			return map;
-		}, {} as {[id: string]: rngAttribute})
-	}
-}
-
-import simplified from '../data/TEILex0.simplified.rng.xml';
-
-const parser = new DOMParser();
-const parsedXml = parser.parseFromString(simplified, 'text/xml');
-
 import Vue from 'vue';
+
+import * as simplify from '@/rng-parser';
+
 export default Vue.extend({
 	data: () => ({
-		attributeCache: new AttributeCache(),
-		doc: parsedXml
+		nonce: 0,
+		doc: '' as string,
+		simplified: '' as string,
 	}),
 	computed: {
-		parseTree(): rng|null {
-			if (!this.doc) return null;
-
-			const d = this.doc.documentElement;
-
-			return {
-				elements: [...d.querySelectorAll('define')].map(el => this.element(el)).reduce((map, cur) => {
-					map[cur.id] = cur;
-					return map;
-				}, {} as {[id: string]: rngElement}),
-				attributes: this.attributeCache.map(),
-				root: this.root(d),
-			}
+		parseTree(): simplify.rng|null {
+			return this.simplified ? simplify.parseSimplifiedRNG(this.simplified) : null
 		},
+		xema(): simplify.Xema|null {
+			return this.parseTree ? simplify.rngToXema(this.parseTree) : null
+		}
 	},
-	methods: {
-		root(ctx: Element): string {
-			return ctx.querySelector('start ref')!.getAttribute('name')!;
-		},
-		element(ctx: Element): rngElement {
-			const defName = ctx.getAttribute('name')!;
-			ctx = child(ctx, 'element');
-			const elName = child(ctx, 'name')!.textContent!;
-			
-			const s: any = {};
+	async mounted() {
+		let rngEditor: HTMLTextAreaElement|null = document.querySelector('.block.rng textarea');
+		while (!rngEditor || !rngEditor.value) {
+			rngEditor = document.querySelector('.block.rng textarea');
+			await new Promise(resolve => window.setTimeout(resolve, 500));
+		}
 
-			const r: rngElement = {
-				id: defName,
-				attributes: [...ctx.querySelectorAll('attribute')].map(el => this.attribute(el)),
-				element: elName,
-				children: children(ctx, 'group, choice').map<rngChildSpec>(e => {
-					switch (e.tagName) {
-						case 'group': return this._group(e);
-						case 'choice': return this._choice(e);
-						default: throw new Error(`Unexpected element ${e.tagName}`);
-					}
-				}),
+		this.doc = rngEditor.value;
+		rngEditor.addEventListener('change', () => this.doc = rngEditor!.value);
+	},
+	watch: {
+		doc() {
+			if (this.doc) {
+				const nonce = ++this.nonce; // nonce so we don't apply stale data when a new edit happens before we're done processing the previous one.
+				simplify.simplify(this.doc).then(r => {
+					if (nonce === this.nonce) this.simplified = r;
+				});
 			}
-
-			return r;
 		},
-
-		_group(ctx: Element): rngChildSpec {
-			const r: rngChildSpec = {
-				type: 'and',
-				allowText: false, 
-				children: []
-			};
-
-			const stack = [...ctx.children];
-			let c: Element|undefined;
-			while ((c = stack.shift()) != null) {
-				switch (c.tagName) {
-					case 'choice': r.children.push(this._choice(c)); continue;
-					case 'group': stack.push(...c.children); continue;
-					case 'attribute': continue; // parsed separately
-					case 'empty': continue; // empty as a child of group is meaningless.
-					case 'text': r.allowText = true; continue;
-					case 'ref': r.children.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
-					default: console.warn(`unexpected element ${c.tagName} in <group> for element ${ctx.closest('define')!.getAttribute('name')!}`); continue;
-				}
+		xema: {
+			immediate: true, 
+			handler() {
+				Vue.nextTick(() => {
+					console.log('resizing');
+					const el = document.getElementById('xematree') as HTMLElement;
+					el.style.height = (el.scrollHeight + 20) + 'px'
+				});
 			}
-
-			return r;
-		},
-		_choice(ctx: Element): rngChildSpec {
-			const r: rngChildSpec = {
-				type: 'or',
-				allowText: false, 
-				children: []
-			};
-
-			const stack = [...ctx.children];
-			let c: Element|undefined;
-			while ((c = stack.shift()) != null) {
-				switch (c.tagName) {
-					case 'choice': stack.push(...c.children); continue;
-					case 'group': r.children.push(this._group(c)); continue;
-					case 'attribute': continue; // parsed separately
-					case 'empty': continue; // empty as a child of group is meaningless.
-					case 'text': r.allowText = true; continue;
-					case 'ref': r.children.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
-					default: console.warn(`unexpected element ${c.tagName} in <group> for element ${ctx.closest('define')!.getAttribute('name')!}`); continue;
-				}
-			}
-
-			return r;
-		},
-
-		attribute(ctx: Element): any {
-			const name = ctx.getAttribute('name')!;
-			const optional = ctx.hasAttribute('optional');
-			const pattern = ctx.querySelector('param[name="pattern"]')?.textContent || null;
-			const values = children(ctx, 'value').map(el => el.textContent!);
-
-			return this.attributeCache.getId(name, optional, pattern, values);
-		},
+		}
 	}
 })
 </script>
