@@ -2,7 +2,7 @@ const path = require('path');
 
 module.exports = {
 	entry: {
-		'rng-parser': './src/rng-parser.ts',
+		'rngparser': './src/rng-parser.ts',
 		// interface: './src/interface/index.ts',
 		// parser: './src/parser/index.ts'
 	},
@@ -23,6 +23,7 @@ module.exports = {
 		// Path in webpack-dev-server for compiled files (has priority over disk files in case both exist)
 		publicPath: '/dist/',
 		clean: true, // clean previous outputs prior to compiling
+		library: ['RngParser'] // add all exports to the global RngParser object
 	},
 	resolve: {
 		extensions: ['.js', '.ts'], // enable autocompleting .ts and .js extensions when using import '...'

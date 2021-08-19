@@ -3,7 +3,7 @@ const { VueLoaderPlugin } = require('vue-loader');
 
 module.exports = {
 	entry: {
-		'rng-parser': './src/rng-parser.ts',
+		'rngparser': './src/rng-parser.ts',
 		'index': './src/index.ts',
 	},
 	module: {
@@ -36,6 +36,7 @@ module.exports = {
 		// Path in webpack-dev-server for compiled files (has priority over disk files in case both exist)
 		publicPath: '/dist/',
 		clean: true, // clean previous outputs prior to compiling
+		library: ['RelaxNG']
 	},
 	resolve: {
 		extensions: ['.js', '.ts'], // enable autocompleting .ts and .js extensions when using import '...'
@@ -49,4 +50,8 @@ module.exports = {
 		new VueLoaderPlugin(),
 	],
 	devtool: "eval-source-map",
+
+	// enabling this breaks exporting to window through the library option above.
+	// See https://github.com/webpack/webpack/issues/11887
+	devServer:{injectClient: false}
 };
