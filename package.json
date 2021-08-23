@@ -1,8 +1,8 @@
 {
-  "name": "rng-parser",
+  "name": "@lexonomy/rng-parser",
   "version": "1.1.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Parse a Relax-NG file in xml-form and convert it to a configuration object for use with Lexonomy.",
+  "main": "dist/rng-parser.js",
   "scripts": {
     "start": "webpack serve --config webpack.config.dev.js --mode development --port 80 --host 0.0.0.0",
     "build": "webpack --config webpack.config.prod.js --mode production",
@@ -10,8 +10,13 @@
     "debug-test": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "sef": "xslt3 -t -xsl:xslt-test/rng-simplification-total.xsl -export:xslt-test/rng-simplification-total.sef.json -nogo"
   },
+  "files": [
+    "dist/**"
+  ],
+  "types": "dist/src/rng-parser.d.ts",
   "author": "KCMertens",
   "license": "ISC",
+  
   "devDependencies": {
     "@babel/core": "^7.14.6",
     "@babel/preset-env": "^7.14.7",

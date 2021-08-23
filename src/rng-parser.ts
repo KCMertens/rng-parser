@@ -251,7 +251,7 @@ function _choice(ctx: Element): rngChildSpec {
 	return r;
 }
 
-function attribute(ctx: Element, cache: AttributeCache): any {
+function attribute(ctx: Element, cache: AttributeCache): string {
 	const name = ctx.getAttribute('name')!;
 	const optional = ctx.hasAttribute('optional');
 	const pattern = ctx.querySelector('param[name="pattern"]')?.textContent || null;
