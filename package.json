@@ -7,7 +7,8 @@
     "start": "webpack serve --config webpack.config.dev.js --mode development --port 80 --host 0.0.0.0",
     "build": "webpack --config webpack.config.prod.js --mode production",
     "test": "jest",
-    "debug-test": "node --inspect-brk node_modules/.bin/jest --runInBand"
+    "debug-test": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "sef": "xslt3 -t -xsl:xslt-test/rng-simplification-total.xsl -export:xslt-test/rng-simplification-total.sef.json -nogo"
   },
   "author": "KCMertens",
   "license": "ISC",

@@ -14,7 +14,6 @@ import * as simplify from '@/rng-parser';
 
 export default Vue.extend({
 	data: () => ({
-		nonce: 0,
 		doc: '' as string,
 		simplified: '' as string,
 	}),
@@ -38,12 +37,7 @@ export default Vue.extend({
 	},
 	watch: {
 		doc() {
-			if (this.doc) {
-				const nonce = ++this.nonce; // nonce so we don't apply stale data when a new edit happens before we're done processing the previous one.
-				simplify.simplify(this.doc).then(r => {
-					if (nonce === this.nonce) this.simplified = r;
-				});
-			}
+			this.simplified = simplify.simplify(this.doc);
 		},
 		xema: {
 			immediate: true, 

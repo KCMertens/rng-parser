@@ -731,6 +731,7 @@
 		</xsl:copy>
 	</xsl:template>
 
+	<!-- these are extension points, and are never useful? -->
 	<xsl:template match="rng:notAllowed" mode="step7.23"/>
 
 	<!-- flatten nested groups -->
@@ -752,13 +753,6 @@
 	</xsl:template>
 
 	<xsl:template match="rng:oneOrMore[not(.//*[self::rng:ref or self::rng:text or self::rng:attribute])]" mode="step7.23"/>
-
-
-	<!-- seriesStmt-d1406e5356 -->
-	<!-- glyph-d1406e2638 -->
-	<!-- idno-d1406e5263 -->
-	<!-- tagUsage-d1406e5463 -->
-
 
 	<!-- 7.24 -->
 
@@ -786,7 +780,6 @@
 		</attribute>
 	</xsl:template>
 
-	
 
 	<xsl:template match="rng:group" mode="step7.24">
 		<xsl:param name="optional" select="false()"/>
@@ -921,7 +914,5 @@
 			</xsl:otherwise>
 		</xsl:choose>
 	</xsl:template>
-
-	
 
 </xsl:stylesheet>

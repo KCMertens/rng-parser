@@ -1,18 +1,17 @@
 import '@/lib/saxon/SaxonJS2.rt.js'; // global saxonjs
 import stylesheet from '@/../data/rng-simplification.sef.json';
 
-export function simplify(xml: string): Promise<string> {
+export function simplify(xml: string): string {
 	console.log('simplifying...');
 	const input = {
-		stylesheetText: JSON.stringify(stylesheet),
+		stylesheetInternal: stylesheet,
 		sourceText: xml,
-		destination: 'serialized'
+		destination: 'serialized',
 	};
 	//@ts-ignore
-	return SaxonJS.transform(input, 'serialized').then((r: any) => {
-		console.log('simplifying done!');
-		return r.principalResult;
-	});
+	const result = SaxonJS.transform(input, 'sync');
+	//@ts-ignore
+	return result.principalResult;
 }
 
 export function parseSimplifiedRNG(simplified: string): rng {
