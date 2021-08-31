@@ -6,7 +6,7 @@ For now, the conversion only accepts Relax-NG files in XML format (see [here](ht
 
 The conversion has several steps: 
 1. The schema is parsed as XML file, we use basic browser support to do this. Meaning it will not run under Node for now.
-2. It's simplified according to the rules [outlined here](https://www.oasis-open.org/committees/relax-ng/spec-20011203.html#simplification) by applying the xslt file [rng-simplification.xsl](data/rng-simplification.xsl) 
+2. It's simplified according to the rules in the Relax-NG spec [outlined here](https://www.oasis-open.org/committees/relax-ng/spec-20011203.html#simplification) by applying the xslt file [rng-simplification.xsl](data/rng-simplification.xsl) 
   Note that at the end of the simplification a few additional rules have been added to make parsing a litte simpler. As our goal here is not to merely validate an xml file, but to set-up a set of constraints. It's the difference between asking "can child Y exist beneath X" versus "what is the list of children X can contain".
 3. The (simplified) document is then parsed into a javascript object outlining some rules regarding allowed attributes/children on elements. 
 4. That object is then converted into a Lexonomy "`Xema`". Essentially a config that Lexonomy uses to generate a `DocSpec`, which is yet another object that contains the rules by which it constrains the XML editor.
