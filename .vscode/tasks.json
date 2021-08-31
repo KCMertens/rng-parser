@@ -14,7 +14,7 @@
 			"problemMatcher": [
 				"$saxon-xslt"
 			],
-			"saxonJar": "E:/programs/SaxonHE10-5J/saxon-he-10.5.jar"
+			"saxonJar": "C:\\Users\\mertens\\saxon"
 		}, {
 			"type": "npm",
 			"label": "sef",
