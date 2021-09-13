@@ -1,5 +1,5 @@
 {
-  "name": "@lexonomy/rng-parser",
+  "name": "@kcmertens/rng-parser",
   "version": "1.1.0",
   "description": "Parse a Relax-NG file in xml-form and convert it to a configuration object for use with Lexonomy.",
   "main": "dist/rng-parser.js",
@@ -16,7 +16,6 @@
   "types": "dist/src/rng-parser.d.ts",
   "author": "KCMertens",
   "license": "ISC",
-  
   "devDependencies": {
     "@babel/core": "^7.14.6",
     "@babel/preset-env": "^7.14.7",
@@ -42,5 +41,8 @@
   "dependencies": {
     "saxon-js": "^2.2.0",
     "xslt3": "^2.2.0"
+  },
+  "peerDependencies": {
+    "@kcmertens/xonomy": "0.0.5"
   }
 }
