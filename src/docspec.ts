@@ -1,28 +1,39 @@
-import Xonomy, {XonomyDocSpec} from '@kcmertens/xonomy';
-import {rng} from './rng-parser';
+import Xonomy, {XonomyAttributeDefinitionExternal, XonomyDocSpecExternal, XonomyElementDefinitionExternal} from '@kcmertens/xonomy';
+import {Rng, RngAttribute} from './rng-parser';
 
-export function rngToDocspec(rng: rng): Partial<XonomyDocSpec> {
-	return {
-		elements: Object.entries(rng.elements).reduce<XonomyDocSpec['elements']>((map, [id, def]) => {
+export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
+	const spec = {
+		elements: Object.entries(rng.elements).reduce<Record<string, XonomyElementDefinitionExternal>>((map, [id, def]) => {
 			const allowText = def.children.some(c => c.allowText);
 			map[id] = {
-				asker: Xonomy.askLongString,
-				askerParameter: undefined,
-				attributes: {},
-				backgroundColour() { return '' },
+				attributes: def.attributes.reduce<Record<string, XonomyAttributeDefinitionExternal>>((map, attId) => {
+					map[attId] = {
+						menu: []
+					}
+					return map;
+				}, {}),
 				canDropTo: [],
-				collapsed() { return false },
-				collapsible() { return true },
-				elementName() { return def.element },
+				elementName() { debugger; return def.element },
 				hasText() { return allowText },
-				inlineMenu: [],
-				isInvisible() { return false },
-				isReadOnly() { return false },
-				localDropOnly() { return false },
 				menu: [],
-				oneliner() { return false },
 			}
 			return map;
 		}, {})
 	}
+	return spec;
+}
+
+const xml = Xonomy.xmlEscape;
+
+function att(a: RngAttribute): string {
+	return `${xml(a.name)}="${a.values.length === 1 ? xml(a.values[0]) : ''}"`; // leave value empty when there are multiple choices
+}
+function requiredAttributes(atts: RngAttribute[]): string {
+	return atts.filter(a=>!a.optional).map(att);
+}
+
+
+// Generate the root node and all its required children (where non-ambiguos)
+export function initialElement(rng: Rng): string {
+	return `<${rng.root} ${rng.attributes}>${rng.}</${rng.root}>`
 }

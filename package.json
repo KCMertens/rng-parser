@@ -39,11 +39,8 @@
     "xml-formatter": "^2.4.0"
   },
   "dependencies": {
-    "@kcmertens/xonomy": "0.0.7",
+    "@kcmertens/xonomy": "file:../xonomy",
     "saxon-js": "^2.2.0",
     "xslt3": "^2.2.0"
-  },
-  "peerDependencies": {
-    "@kcmertens/xonomy": "0.0.5"
   }
 }

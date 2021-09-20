@@ -1,28 +1,20 @@
 const path = require('path');
-const { VueLoaderPlugin } = require('vue-loader');
-
 module.exports = {
 	entry: {
 		'rngparser': './src/rng-parser.ts',
-		'index': './src/index.ts',
+		'docspec': './src/docspec.ts',
 	},
 	module: {
 		rules: [{
 			test: /\.css$/,
-			use: ['vue-style-loader', 'css-loader'],
+			use: 'css-loader'
 		}, {
 			test: /\.scss$/,
-			use: ['vue-style-loader', 'css-loader', 'sass-loader']
-		}, {
-			test: /\.vue$/i,
-			use: 'vue-loader',
+			use: ['css-loader', 'sass-loader']
 		}, {
 			test: /\.tsx?$/,
 			exclude: /node_modules/,
 			loader: 'ts-loader',
-			options: {
-				appendTsSuffixTo: [/\.vue$/i],
-			}
 		}, {
 			test: /\.xsl|\.xml$/i,
 			use: 'raw-loader'
@@ -30,13 +22,12 @@ module.exports = {
 	},
 	output: {
 		filename: '[name].js',
-		// filename: '[name].js',
 		// Path on disk for output file
 		path: path.resolve(__dirname, 'dist'),
 		// Path in webpack-dev-server for compiled files (has priority over disk files in case both exist)
 		publicPath: '/dist/',
 		clean: true, // clean previous outputs prior to compiling
-		library: ['RelaxNG']
+		library: '[name]lib'
 	},
 	resolve: {
 		extensions: ['.js', '.ts'], // enable autocompleting .ts and .js extensions when using import '...'
@@ -46,9 +37,9 @@ module.exports = {
 			"@": path.join(__dirname, "src"),
 		}
 	},
-	plugins: [
-		new VueLoaderPlugin(),
-	],
+	externals: {
+		"@kcmertens/xonomy": "Xonomy"
+	},
 	devtool: "eval-source-map",
 
 	// enabling this breaks exporting to window through the library option above.

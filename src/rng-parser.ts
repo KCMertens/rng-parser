@@ -1,8 +1,8 @@
 import '@/lib/saxon/SaxonJS2.rt.js'; // global saxonjs
 import stylesheet from '@/../data/rng-simplification.sef.json';
 
-export function simplify(xml: string): string {
-	console.log('simplifying...');
+export function simplify(xml: string): Rng {
+	console.log('simplifying... this may take a while');
 	const input = {
 		stylesheetInternal: stylesheet,
 		sourceText: xml,
@@ -11,10 +11,11 @@ export function simplify(xml: string): string {
 	//@ts-ignore
 	const result = SaxonJS.transform(input, 'sync');
 	//@ts-ignore
-	return result.principalResult;
+	const simplified: string = result.principalResult;
+	return parseSimplifiedRNG(simplified);
 }
 
-export function parseSimplifiedRNG(simplified: string): rng {
+export function parseSimplifiedRNG(simplified: string): Rng {
 	const parser = new DOMParser();
 	const parsedXml = parser.parseFromString(simplified, 'text/xml');
 	
@@ -26,14 +27,15 @@ export function parseSimplifiedRNG(simplified: string): rng {
 		elements: [...d.querySelectorAll('define')].map(el => element(el, attributeCache)).reduce((map, cur) => {
 			map[cur.id] = cur;
 			return map;
-		}, {} as {[id: string]: rngElement}),
+		}, {} as {[id: string]: RngElement}),
 		attributes: attributeCache.map(),
 		root: root(d),
 	}
 }
 
-export function rngToXema(rng: rng): Xema {
-	function hasRef(e: rngChildSpec|ref): boolean { return isRef(e) || !!e.children.find(c => hasRef(c)); }
+// NOTE: unused (for now)
+export function rngToXema(rng: Rng): Xema {
+	function hasRef(e: RngChildSpec|RngRef): boolean { return isRef(e) || !!e.children.find(c => hasRef(c)); }
 
 	var xema: Xema = {
 		root: rng.root, 
@@ -58,7 +60,7 @@ export function rngToXema(rng: rng): Xema {
 		//select element type: inl=text+children, txt=text only, chd=children only
 		objectEl.filling = hasText ? hasChildElements ? 'inl' : 'txt' : hasChildElements ? 'chd' : 'emp'; 
 		//add allowed child elements, flattened, throw away choice and sequence
-		const add = (c: rngChildSpec|ref): any => {
+		const add = (c: RngChildSpec|RngRef): any => {
 			if (!isRef(c)) c.children.forEach(add);
 			else if (c.id !== e.id || c.optional) objectEl.children.push({ // don't add element as mandatory child of itself (inifinite loop!)
 				min: c.optional ? 0 : 1,
@@ -86,26 +88,26 @@ export function rngToXema(rng: rng): Xema {
 
 // ----------------
 
-export type ref = {
+export type RngRef = {
 	id: string;
 	optional: boolean;
 	multiple: boolean;
 }
 
-export type rngChildSpec = {
+export type RngChildSpec = {
 	type: 'and'|'or';
-	children: Array<ref|rngChildSpec>;
+	children: Array<RngRef|RngChildSpec>;
 	allowText: boolean;
 }
 
-export type rngElement = {
+export type RngElement = {
 	id: string;
 	element: string;
 	attributes: string[];
-	children: rngChildSpec[];
+	children: RngChildSpec[];
 }
 
-export type rngAttribute = {
+export type RngAttribute = {
 	id: string; 
 	name: string;
 	values: string[];
@@ -113,10 +115,10 @@ export type rngAttribute = {
 	pattern: string|null;
 }
 
-export type rng = {
+export type Rng = {
 	root: string;
-	elements: { [id: string]: rngElement },
-	attributes: { [id: string]: rngAttribute; }
+	elements: { [id: string]: RngElement },
+	attributes: { [id: string]: RngAttribute; }
 }
 
 export type Xema = {
@@ -143,7 +145,7 @@ export type Xema = {
 }
 
 class AttributeCache {
-	private cache: {[name: string]: rngAttribute[]} = {};
+	private cache: {[name: string]: RngAttribute[]} = {};
 	private nextAttributeId = 0;
 
 	public getId(name: string, optional: boolean, pattern: string|null, values: string[]) {
@@ -165,33 +167,33 @@ class AttributeCache {
 		return newAttribute.id;
 	}
 
-	public map(): {[id: string]: rngAttribute} {
+	public map(): {[id: string]: RngAttribute} {
 		return Object.values(this.cache).flat().reduce((map, cur) => {
 			map[cur.id] = cur;
 			return map;
-		}, {} as {[id: string]: rngAttribute})
+		}, {} as {[id: string]: RngAttribute})
 	}
 }
 
 const children = (parent: Element, querySelector: string) => [...parent.querySelectorAll(querySelector)].filter(match => match.parentElement === parent);
 const child = (parent: Element, querySelector: string) => children(parent, querySelector)[0] || null;
-function isRef(e: any): e is ref { return e && e.id && !e.children; }
+function isRef(e: any): e is RngRef { return e && e.id && !e.children; }
 
 function root(ctx: Element): string {
 	return ctx.querySelector('start ref')!.getAttribute('name')!;
 }
-function element(ctx: Element, cache: AttributeCache): rngElement {
+function element(ctx: Element, cache: AttributeCache): RngElement {
 	const defName = ctx.getAttribute('name')!;
 	ctx = child(ctx, 'element');
 	const elName = child(ctx, 'name')!.textContent!;
 	
 	const s: any = {};
 
-	const r: rngElement = {
+	const r: RngElement = {
 		id: defName,
 		attributes: [...ctx.querySelectorAll('attribute')].map(el => attribute(el, cache)),
 		element: elName,
-		children: children(ctx, 'group, choice').map<rngChildSpec>(e => {
+		children: children(ctx, 'group, choice').map<RngChildSpec>(e => {
 			switch (e.tagName) {
 				case 'group': return _group(e);
 				case 'choice': return _choice(e);
@@ -203,8 +205,8 @@ function element(ctx: Element, cache: AttributeCache): rngElement {
 	return r;
 }
 
-function _group(ctx: Element): rngChildSpec {
-	const r: rngChildSpec = {
+function _group(ctx: Element): RngChildSpec {
+	const r: RngChildSpec = {
 		type: 'and',
 		allowText: false, 
 		children: []
@@ -227,8 +229,8 @@ function _group(ctx: Element): rngChildSpec {
 	return r;
 }
 
-function _choice(ctx: Element): rngChildSpec {
-	const r: rngChildSpec = {
+function _choice(ctx: Element): RngChildSpec {
+	const r: RngChildSpec = {
 		type: 'or',
 		allowText: false, 
 		children: []
