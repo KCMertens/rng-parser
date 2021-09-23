@@ -1,7 +1,7 @@
 import '@/lib/saxon/SaxonJS2.rt.js'; // global saxonjs
 import stylesheet from '@/../data/rng-simplification.sef.json';
 
-export function simplify(xml: string): Rng {
+export function parse(xml: string): Rng {
 	console.log('simplifying... this may take a while');
 	const input = {
 		stylesheetInternal: stylesheet,
@@ -15,7 +15,7 @@ export function simplify(xml: string): Rng {
 	return parseSimplifiedRNG(simplified);
 }
 
-export function parseSimplifiedRNG(simplified: string): Rng {
+function parseSimplifiedRNG(simplified: string): Rng {
 	const parser = new DOMParser();
 	const parsedXml = parser.parseFromString(simplified, 'text/xml');
 	
@@ -177,7 +177,7 @@ class AttributeCache {
 
 const children = (parent: Element, querySelector: string) => [...parent.querySelectorAll(querySelector)].filter(match => match.parentElement === parent);
 const child = (parent: Element, querySelector: string) => children(parent, querySelector)[0] || null;
-function isRef(e: any): e is RngRef { return e && e.id && !e.children; }
+export function isRef(e: any): e is RngRef { return e && e.id && !e.children; }
 
 function root(ctx: Element): string {
 	return ctx.querySelector('start ref')!.getAttribute('name')!;
