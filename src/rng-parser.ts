@@ -96,7 +96,7 @@ export type RngRef = {
 
 export type RngChildSpec = {
 	type: 'and'|'or';
-	children: Array<RngRef|RngChildSpec>;
+	children: ReadonlyArray<RngRef|RngChildSpec>;
 	allowText: boolean;
 }
 
@@ -104,7 +104,7 @@ export type RngElement = {
 	id: string;
 	element: string;
 	attributes: string[];
-	children: RngChildSpec[];
+	children: readonly RngChildSpec[];
 }
 
 export type RngAttribute = {
@@ -206,6 +206,7 @@ function element(ctx: Element, cache: AttributeCache): RngElement {
 }
 
 function _group(ctx: Element): RngChildSpec {
+	const children = [];
 	const r: RngChildSpec = {
 		type: 'and',
 		allowText: false, 
@@ -216,20 +217,22 @@ function _group(ctx: Element): RngChildSpec {
 	let c: Element|undefined;
 	while ((c = stack.shift()) != null) {
 		switch (c.tagName) {
-			case 'choice': r.children.push(_choice(c)); continue;
+			case 'choice': children.push(_choice(c)); continue;
 			case 'group': stack.push(...c.children); continue;
 			case 'attribute': continue; // parsed separately
 			case 'empty': continue; // empty as a child of group is meaningless.
 			case 'text': r.allowText = true; continue;
-			case 'ref': r.children.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
+			case 'ref': children.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
 			default: console.warn(`unexpected element ${c.tagName} in <group> for element ${ctx.closest('define')!.getAttribute('name')!}`); continue;
 		}
 	}
 
+	r.children = children;
 	return r;
 }
 
 function _choice(ctx: Element): RngChildSpec {
+	const children = [];
 	const r: RngChildSpec = {
 		type: 'or',
 		allowText: false, 
@@ -241,15 +244,15 @@ function _choice(ctx: Element): RngChildSpec {
 	while ((c = stack.shift()) != null) {
 		switch (c.tagName) {
 			case 'choice': stack.push(...c.children); continue;
-			case 'group': r.children.push(_group(c)); continue;
+			case 'group': children.push(_group(c)); continue;
 			case 'attribute': continue; // parsed separately
 			case 'empty': continue; // empty as a child of group is meaningless.
 			case 'text': r.allowText = true; continue;
-			case 'ref': r.children.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
+			case 'ref': children.push({id: c.getAttribute('name')!, optional: c.hasAttribute('optional'), multiple: c.hasAttribute('multiple')}); continue;
 			default: console.warn(`unexpected element ${c.tagName} in <choice> for element ${ctx.closest('define')!.getAttribute('name')!}`); continue;
 		}
 	}
-
+	r.children = children;
 	return r;
 }
 
