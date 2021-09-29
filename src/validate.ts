@@ -20,53 +20,69 @@ export function validateChildSpec(
 	unmatchedChildren: Set<XonomyElementInstance|XonomyTextInstance>,
 	rng: Rng,
 	spec: RngChildSpec,
+	depth = 0
 ): {
 	matched: boolean;
-	error?: string;
-	matchedElements: Set<XonomyElementInstance|XonomyTextInstance>
-} {	
-	const matchedElements = new Set<XonomyElementInstance|XonomyTextInstance>();
-	
+	errors: string[];
+} {
+	let specMatched = true;
+	const specErrors = [] as string[];
+
+	let padding = ''.padStart(depth, '\t');
+	let errorHeader = padding;
+
 	if (spec.type === 'and') {
+		errorHeader = padding+'Missing required element(s):';
+		let lastref= false;
+		let first = true;
 		for (const c of spec.children) {
+			
 			if (isRef(c)) {
 				let matched = false;
 				for (const i of unmatchedChildren) {
 					if (i.type === 'element' && i.name === c.id) {
 						unmatchedChildren.delete(i);
-						matchedElements.add(i);
 						matched = true;
 						if (!c.multiple) break; // not multiple: only match one.
 					}
 				}
 
-				if (!matched) {
-					return {
-						matched: false,
-						error: `Missing required child element ${rng.elements[c.id].element}`,
-						matchedElements
-					}
+				if (!matched && !c.optional) {
+					specMatched = false;
+					if (!lastref && !first) specErrors.push(padding + '----------');
+					specErrors.push(padding + `<${rng.elements[c.id].element}>`);
+					lastref = true;
 				}
-
-				continue; 
+				
 			} else {
 				// group
 				// it's not a child element, but a choice or group of them
 				// so check that that matches.
 				const result = validateChildSpec(instance, unmatchedChildren, rng, c);
-				if (!result.matched) return result;
+				if (!result.matched) {
+					specMatched = false;
+					if (lastref && !first) specErrors.push(padding + '----------');
+					specErrors.push(...result.errors);
+					lastref = false;
+				};
 			}
+			first = false;
 		}
 	} else { // at most one match
-		const errors: string[] = [];
-
 		let matchedAny = false;
+		errorHeader = padding+'Missing one of the following requirements:'
+		let lastref = false;
+		let first = true;
 		for (const c of spec.children) {
 			if (isRef(c)) {
+				// push error preemptively so we don't have to walk tree twice.
+				if (!lastref && !first) specErrors.push(padding + '----------')
+				specErrors.push(padding + `<${rng.elements[c.id].element}>`)
+				lastref = true;
+				
 				for (const i of unmatchedChildren) {
 					if (i.type === 'element' && i.name === c.id) {
 						unmatchedChildren.delete(i);
-						matchedElements.add(i);
 						matchedAny = true;
 						if (!c.multiple) break; // not multiple: only match one.
 					}
@@ -78,21 +94,21 @@ export function validateChildSpec(
 					matchedAny = true;
 					break;
 				} else {
-					errors.push(result.error!);
+					if (lastref && !first) specErrors.push(padding + '----------');
+					specErrors.push(...result.errors);
+					lastref = false;
 				}
 			}
+			first = false;
 		}
 		if (!matchedAny) {
-			return {
-				matched: false,
-				matchedElements,
-				error: `Missing one of the following required element(s): ${errors.map(e => '\n\t— ' + e).join('')}`
-			}
+			specMatched = false;
 		}
 	}
+	specErrors.unshift(errorHeader);
 
 	return {
-		matched: true,
-		matchedElements
+		matched: specMatched,
+		errors: specErrors
 	}
 }

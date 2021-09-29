@@ -2,6 +2,7 @@ import '@/lib/saxon/SaxonJS2.rt.js'; // global saxonjs
 import stylesheet from '@/../data/rng-simplification.sef.json';
 
 export function parse(xml: string): Rng {
+	debugger;
 	console.log('simplifying... this may take a while');
 	const input = {
 		stylesheetInternal: stylesheet,
@@ -202,7 +203,21 @@ function element(ctx: Element, cache: AttributeCache): RngElement {
 		}),
 	}
 
+	removeSingleMothers(r.children as any);
+	if (r.children.length === 1 && !isRef(r.children[0])) (r.children as any) = r.children[0].children;
+
 	return r;
+}
+
+function removeSingleMothers(m: Array<RngChildSpec|RngRef>) {
+	for (let i = 0; i < m.length; ++i) {
+		const c = m[i];
+		if (!isRef(c) && c.children.length === 1) m[i] = c.children[0];
+	};
+
+	m.forEach(c => { 
+		if (!isRef(c)) removeSingleMothers(c.children as any)
+	});
 }
 
 function _group(ctx: Element): RngChildSpec {

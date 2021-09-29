@@ -3,7 +3,6 @@ import {Rng, RngAttribute, RngChildSpec, isRef, RngRef} from './rng-parser';
 import { validateAttribute, validateChildSpec } from './validate';
 
 export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
-	debugger;
 	const spec: XonomyDocSpecExternal = {
 		elements: Object.entries(rng.elements).reduce<Record<string, XonomyElementDefinitionExternal>>((map, [id, def]) => {
 			const allowText = def.children.some(c => c.allowText);
@@ -35,10 +34,11 @@ export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 				const unmatchedChildren = new Set(cur.children.filter(c => c.type === 'element') as XonomyElementInstance[]);
 				for (const condition of def.children) {
 					const result = validateChildSpec(cur, unmatchedChildren, rng, condition);
-					if (result.error) {
+					if (!result.matched) {
+						debugger;
 						Xonomy.warnings.push({
 							htmlID: cur.htmlID!,
-							text: result.error
+							text: result.errors.join('<br>')
 						})
 					}
 				}
@@ -65,7 +65,7 @@ export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 
 				const definition = foundChildren.find(c => rng.elements[c.id].element === elementName)
 				if (definition) { return definition.id }
-				else { debugger; return elementName; }
+				else { return elementName; }
 			}
 
 			// no parent, it may be the root, check that
@@ -74,7 +74,7 @@ export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 			// no parent, not the root, check all elements to find possible match
 			const definition = Object.values(rng.elements).find(e => e.element === elementName);
 			if (definition) { return definition.id }
-			else { debugger; return elementName; }
+			else { return elementName; }
 		}
 	}
 	return spec;
