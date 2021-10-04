@@ -1,8 +1,9 @@
 import '@/lib/saxon/SaxonJS2.rt.js'; // global saxonjs
 import stylesheet from '@/../data/rng-simplification.sef.json';
 
+import { isRef, Rng, RngAttribute, RngChildSpec, RngElement, RngRef, Xema } from './types/rng';
+
 export function parse(xml: string): Rng {
-	debugger;
 	console.log('simplifying... this may take a while');
 	const input = {
 		stylesheetInternal: stylesheet,
@@ -89,61 +90,6 @@ export function rngToXema(rng: Rng): Xema {
 
 // ----------------
 
-export type RngRef = {
-	id: string;
-	optional: boolean;
-	multiple: boolean;
-}
-
-export type RngChildSpec = {
-	type: 'and'|'or';
-	children: ReadonlyArray<RngRef|RngChildSpec>;
-	allowText: boolean;
-}
-
-export type RngElement = {
-	id: string;
-	element: string;
-	attributes: string[];
-	children: readonly RngChildSpec[];
-}
-
-export type RngAttribute = {
-	id: string; 
-	name: string;
-	values: string[];
-	optional: boolean;
-	pattern: string|null;
-}
-
-export type Rng = {
-	root: string;
-	elements: { [id: string]: RngElement },
-	attributes: { [id: string]: RngAttribute; }
-}
-
-export type Xema = {
-	root: string;
-	elements: {
-		[id: string]: {
-			elementName: string;
-			// inl=text+children, txt=text only, chd=children only
-			filling: 'inl'|'txt'|'chd'|'emp';
-			values: string[];
-			children: Array<{min: number, max: number|null, name: string}>;
-			attributes: {
-				[id: string]: {
-					optionality: 'optional'|'obligatory';
-					filling: 'txt'|'lst'; // whether to use value list?
-					values?: Array<{
-						value: string;
-						caption: string;
-					}>
-				}
-			}
-		}
-	}
-}
 
 class AttributeCache {
 	private cache: {[name: string]: RngAttribute[]} = {};
@@ -178,7 +124,6 @@ class AttributeCache {
 
 const children = (parent: Element, querySelector: string) => [...parent.querySelectorAll(querySelector)].filter(match => match.parentElement === parent);
 const child = (parent: Element, querySelector: string) => children(parent, querySelector)[0] || null;
-export function isRef(e: any): e is RngRef { return e && e.id && !e.children; }
 
 function root(ctx: Element): string {
 	return ctx.querySelector('start ref')!.getAttribute('name')!;

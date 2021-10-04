@@ -1,6 +1,129 @@
-import Xonomy, {XonomyAttributeDefinitionExternal, XonomyDocSpec, XonomyDocSpecExternal, XonomyElementDefinitionExternal, XonomyElementInstance} from '@kcmertens/xonomy';
-import {Rng, RngAttribute, RngChildSpec, isRef, RngRef} from './rng-parser';
+import Xonomy, {XonomyAttributeDefinitionExternal, XonomyDocSpecExternal, XonomyElementDefinitionExternal, XonomyElementInstance} from '@kcmertens/xonomy';
+import { Rng, RngAttribute, RngChildSpec, isRef, RngRef } from './types/rng';
 import { validateAttribute, validateChildSpec } from './validate';
+
+import './style/warning.css';
+
+const keymap = {
+	'backspace': 8,
+	'tab': 9,
+	'enter': 13,
+	'shift': 16,
+	'ctrl': 17,
+	'alt': 18,
+	'pause/break': 19,
+	'caps lock': 20,
+	'escape': 27,
+	'(space)': 32,
+	'page up': 33,
+	'page down': 34,
+	'end': 35,
+	'home': 36,
+	'left arrow': 37,
+	'up arrow': 38,
+	'right arrow': 39,
+	'down arrow': 40,
+	'insert': 45,
+	'delete': 46,
+	'0': 48,
+	'1': 49,
+	'2': 50,
+	'3': 51,
+	'4': 52,
+	'5': 53,
+	'6': 54,
+	'7': 55,
+	'8': 56,
+	'9': 57,
+	'a': 65,
+	'b': 66,
+	'c': 67,
+	'd': 68,	
+	'e': 69,
+	'f': 70,
+	'g': 71,
+	'h': 72,
+	'i': 73,
+	'j': 74,
+	'k': 75,
+	'l': 76,
+	'm': 77,
+	'n': 78,
+	'o': 79,
+	'p': 80,
+	'q': 81,
+	'r': 82,
+	's': 83,
+	't': 84,
+	'u': 85,
+	'v': 86,
+	'w': 87,
+	'x': 88,
+	'y': 89,
+	'z': 90,
+	'left window key': 91,
+	'right window key': 92,
+	'select key': 93,
+	'numpad 0': 96,
+	'numpad 1': 97,
+	'numpad 2': 98,
+	'numpad 3': 99,
+	'numpad 4': 100,
+	'numpad 5': 101,
+	'numpad 6': 102,
+	'numpad 7': 103,	
+	'numpad 8': 104,
+	'numpad 9': 105,
+	'multiply': 106,
+	'add': 107,
+	'subtract': 109,
+	'decimal point': 110,
+	'divide': 111,
+	'f1': 112,
+	'f2': 113,
+	'f3': 114,
+	'f4': 115,
+	'f5': 116,
+	'f6': 117,
+	'f7': 118,
+	'f8': 119,
+	'f9': 120,
+	'f10': 121,
+	'f11': 122,
+	'f12': 123,
+	'num lock': 144,
+	'scroll lock': 145,
+	'semi-colon': 186,
+	'equal sign': 187,
+	'comma': 188,
+	'dash': 189,
+	'period': 190,
+	'forward slash': 191,
+	'grave accent': 192,
+	'open bracket': 219,
+	'back slash': 220,
+	'close braket': 221,
+	'single quote': 222,
+};
+
+const keyState = {};
+$(document).on('keypress', e => {
+	keyState[e.which] = true;
+})
+
+const keys = (k: Array<keyof typeof keymap>) => {
+	const label = k.join(' + ');
+	return {
+		keyCaption: label,
+		keyTrigger: (e: JQuery.Event) => {
+			const o: KeyboardEvent = (e as any).originalEvent;
+			o.code
+		}
+	}
+}
+
+
+const keyMatcher = (key: keyof typeof keys|Array<keyof typeof keys>) => Array.isArray(key) ? (e: JQuery.Event) => e.p
 
 export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 	const spec: XonomyDocSpecExternal = {
@@ -8,15 +131,24 @@ export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 			const allowText = def.children.some(c => c.allowText);
 			map[id] = {
 				attributes: def.attributes.reduce<Record<string, XonomyAttributeDefinitionExternal>>((map, attId) => {
+					const {optional, name, pattern, values} = rng.attributes[attId];
 					map[attId] = {
-						menu: []
+						menu: [{
+							action: Xonomy.deleteAttribute,
+							caption: `Delete @${name}`,
+							hideIf: !optional,
+							keyCaption: 'Delete',
+							keyTrigger: keyMatcher('delete')
+						}]
 					}
 					return map;
 				}, {}),
 				canDropTo: [],
 				elementName() { return def.element },
 				hasText() { return allowText },
-				menu: [],
+				menu: [
+					
+				],
 			}
 			return map;
 		}, {}),
@@ -25,27 +157,26 @@ export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 			// we're only testing direct children here!
 		
 			const stack: XonomyElementInstance[] = [root];
-			let cur: XonomyElementInstance|undefined;
-			while (cur = stack.shift()) {
-				cur.children.forEach(c => { if (c.type === 'element') stack.push(c); });
-				const def = rng.elements[cur.name];
-				def.attributes.forEach(attId => validateAttribute(cur!, rng.attributes[attId]));
+			let elementInstance: XonomyElementInstance|undefined;
+			while (elementInstance = stack.shift()) {
+				elementInstance.children.forEach(c => { if (c.type === 'element') stack.push(c); });
+				const elementDefinition = rng.elements[elementInstance.name];
+				elementDefinition.attributes.forEach(attId => validateAttribute(elementInstance!, rng.attributes[attId]));
 				
-				const unmatchedChildren = new Set(cur.children.filter(c => c.type === 'element') as XonomyElementInstance[]);
-				for (const condition of def.children) {
-					const result = validateChildSpec(cur, unmatchedChildren, rng, condition);
+				const unmatchedChildren = new Set(elementInstance.children.filter(c => c.type === 'element') as XonomyElementInstance[]);
+				for (const condition of elementDefinition.children) {
+					const result = validateChildSpec(elementInstance, unmatchedChildren, rng, condition, 0);
 					if (!result.matched) {
-						debugger;
 						Xonomy.warnings.push({
-							htmlID: cur.htmlID!,
-							text: result.errors.join('<br>')
+							htmlID: elementInstance.htmlID!,
+							text: 'Missing required elements:\n' + result.error
 						})
 					}
 				}
 				for (const extraChild of unmatchedChildren) {
 					Xonomy.warnings.push({
-						htmlID: cur.htmlID!,
-						text: `Element <${extraChild.elementName}> is not allowed as a child of <${cur.elementName}>`
+						htmlID: elementInstance.htmlID!,
+						text: `Element <${extraChild.elementName}> is not allowed as a child of <${elementInstance.elementName}>`
 					})
 				}
 			}

@@ -7,10 +7,10 @@ module.exports = {
 	module: {
 		rules: [{
 			test: /\.css$/,
-			use: 'css-loader'
+			use: ['style-loader', 'css-loader']
 		}, {
 			test: /\.scss$/,
-			use: ['css-loader', 'sass-loader']
+			use: ['style-loader', 'css-loader', 'sass-loader']
 		}, {
 			test: /\.tsx?$/,
 			exclude: /node_modules/,
@@ -27,7 +27,7 @@ module.exports = {
 		// Path in webpack-dev-server for compiled files (has priority over disk files in case both exist)
 		publicPath: '/dist/',
 		clean: true, // clean previous outputs prior to compiling
-		library: '[name]lib'
+		library: '[name]lib',
 	},
 	resolve: {
 		extensions: ['.js', '.ts'], // enable autocompleting .ts and .js extensions when using import '...'
@@ -44,5 +44,5 @@ module.exports = {
 
 	// enabling this breaks exporting to window through the library option above.
 	// See https://github.com/webpack/webpack/issues/11887
-	devServer:{injectClient: false}
+	devServer:{injectClient: false},
 };
