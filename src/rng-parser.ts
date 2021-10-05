@@ -148,8 +148,8 @@ function element(ctx: Element, cache: AttributeCache): RngElement {
 		}),
 	}
 
-	removeSingleMothers(r.children as any);
-	if (r.children.length === 1 && !isRef(r.children[0])) (r.children as any) = r.children[0].children;
+	removeSingleMothers(r.children as any); // cast to remove readonly (bah!)
+	// if (r.children.length === 1 && !isRef(r.children[0])) (r.children as any) = r.children[0].children;
 
 	return r;
 }

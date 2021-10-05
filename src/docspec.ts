@@ -1,129 +1,73 @@
-import Xonomy, {XonomyAttributeDefinitionExternal, XonomyDocSpecExternal, XonomyElementDefinitionExternal, XonomyElementInstance} from '@kcmertens/xonomy';
+import Xonomy, {XonomyAttributeDefinitionExternal, XonomyDocSpecExternal, XonomyElementDefinitionExternal, XonomyElementInstance, XonomyMenuAction, XonomyMenuActionExternal, XonomyPickListOption} from '@kcmertens/xonomy';
 import { Rng, RngAttribute, RngChildSpec, isRef, RngRef } from './types/rng';
 import { validateAttribute, validateChildSpec } from './validate';
 
 import './style/warning.css';
 
-const keymap = {
-	'backspace': 8,
-	'tab': 9,
-	'enter': 13,
-	'shift': 16,
-	'ctrl': 17,
-	'alt': 18,
-	'pause/break': 19,
-	'caps lock': 20,
-	'escape': 27,
-	'(space)': 32,
-	'page up': 33,
-	'page down': 34,
-	'end': 35,
-	'home': 36,
-	'left arrow': 37,
-	'up arrow': 38,
-	'right arrow': 39,
-	'down arrow': 40,
-	'insert': 45,
-	'delete': 46,
-	'0': 48,
-	'1': 49,
-	'2': 50,
-	'3': 51,
-	'4': 52,
-	'5': 53,
-	'6': 54,
-	'7': 55,
-	'8': 56,
-	'9': 57,
-	'a': 65,
-	'b': 66,
-	'c': 67,
-	'd': 68,	
-	'e': 69,
-	'f': 70,
-	'g': 71,
-	'h': 72,
-	'i': 73,
-	'j': 74,
-	'k': 75,
-	'l': 76,
-	'm': 77,
-	'n': 78,
-	'o': 79,
-	'p': 80,
-	'q': 81,
-	'r': 82,
-	's': 83,
-	't': 84,
-	'u': 85,
-	'v': 86,
-	'w': 87,
-	'x': 88,
-	'y': 89,
-	'z': 90,
-	'left window key': 91,
-	'right window key': 92,
-	'select key': 93,
-	'numpad 0': 96,
-	'numpad 1': 97,
-	'numpad 2': 98,
-	'numpad 3': 99,
-	'numpad 4': 100,
-	'numpad 5': 101,
-	'numpad 6': 102,
-	'numpad 7': 103,	
-	'numpad 8': 104,
-	'numpad 9': 105,
-	'multiply': 106,
-	'add': 107,
-	'subtract': 109,
-	'decimal point': 110,
-	'divide': 111,
-	'f1': 112,
-	'f2': 113,
-	'f3': 114,
-	'f4': 115,
-	'f5': 116,
-	'f6': 117,
-	'f7': 118,
-	'f8': 119,
-	'f9': 120,
-	'f10': 121,
-	'f11': 122,
-	'f12': 123,
-	'num lock': 144,
-	'scroll lock': 145,
-	'semi-colon': 186,
-	'equal sign': 187,
-	'comma': 188,
-	'dash': 189,
-	'period': 190,
-	'forward slash': 191,
-	'grave accent': 192,
-	'open bracket': 219,
-	'back slash': 220,
-	'close braket': 221,
-	'single quote': 222,
-};
+type Key = 'Delete'; // todo add others, probably
+type ModifierKey = 'Alt'|'Control'|'Shift';
 
-const keyState = {};
-$(document).on('keypress', e => {
-	keyState[e.which] = true;
-})
-
-const keys = (k: Array<keyof typeof keymap>) => {
-	const label = k.join(' + ');
+const keyTrigger = (k: Key, mods: ModifierKey[] = []): {
+	keyCaption: string,
+	keyTrigger: (e: JQuery.Event) => boolean
+} => {
 	return {
-		keyCaption: label,
+		keyCaption: [...mods, k].join('+'),
 		keyTrigger: (e: JQuery.Event) => {
-			const o: KeyboardEvent = (e as any).originalEvent;
-			o.code
+			debugger;
+			const originalEvent = (e as any).originalEvent as KeyboardEvent;
+			return mods.every(mod => originalEvent.getModifierState(mod)) && originalEvent.key === k;
 		}
 	}
 }
 
 
-const keyMatcher = (key: keyof typeof keys|Array<keyof typeof keys>) => Array.isArray(key) ? (e: JQuery.Event) => e.p
+function menu(rng: Rng, specs: readonly RngChildSpec[]): XonomyMenuActionExternal[] {
+	function refOption(spec: RngRef, parent?: RngChildSpec): XonomyMenuActionExternal {
+		return {
+			caption: `<${rng.elements[spec.id].element}>`,
+			action: function(htmlID: string, param: any, el: HTMLDivElement) {
+				el.classList.toggle('checked');
+				// spec.check(spec);
+			} as any,
+		}
+	}
+
+	function orOption(spec: RngChildSpec, parent?: RngChildSpec): XonomyMenuActionExternal {
+		return {
+			caption: 'Pick one',
+			menu: [
+				...spec.children.filter(c => isRef(c)).map(o => refOption(o as RngRef, spec)),
+				...spec.children.filter(c => !isRef(c)).map((o: RngChildSpec) => o.type === 'and' ? andOption(o, spec, true) : orOption(o, spec))
+			],
+		}
+	}
+	
+	function isRequired(s: RngChildSpec): boolean {
+		for (const c of s.children) {
+			if (!isRef(c)) return isRequired(c);
+			else if (!c.optional) return true;
+		}
+		return false;
+	}
+	function andOption(spec: RngChildSpec, parent: RngChildSpec|undefined, forceChoices = false): XonomyMenuActionExternal {
+		const requiredRefs = spec.children.filter(c => isRef(c) && !c.optional) as RngRef[];
+		const requiredChoices = spec.children.filter(c => !isRef(c) && (forceChoices || isRequired(c))) as RngChildSpec[];
+		
+		if (!requiredRefs.length && !requiredChoices.length) throw new Error('all options should have something be required.');
+
+		return {
+			caption: requiredRefs.map(r => `<${rng.elements[r.id].element}>`).join('+') + ' and one of each section below',
+			menu: requiredChoices.map(s => s.type === 'and' ? andOption(s, spec, forceChoices) : orOption(s, spec))
+		}
+	}
+
+	return specs.filter(s => isRef(s) ? !s.optional : isRequired(s)).map(s => 
+		isRef(s) ? refOption(s)
+		: s.type === 'and' ? andOption(s, undefined) 
+		: orOption(s)
+	);
+}
 
 export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 	const spec: XonomyDocSpecExternal = {
@@ -132,23 +76,38 @@ export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 			map[id] = {
 				attributes: def.attributes.reduce<Record<string, XonomyAttributeDefinitionExternal>>((map, attId) => {
 					const {optional, name, pattern, values} = rng.attributes[attId];
-					map[attId] = {
+					map[name] = {
 						menu: [{
 							action: Xonomy.deleteAttribute,
+							actionParameter: rng.attributes[attId],
 							caption: `Delete @${name}`,
 							hideIf: !optional,
-							keyCaption: 'Delete',
-							keyTrigger: keyMatcher('delete')
-						}]
+							...keyTrigger('Delete')
+						}],
+						asker: values && values.length ? Xonomy.askPicklist : Xonomy.askString,
+						askerParameter: values.map<XonomyPickListOption>(v => ({caption: v, value: v}))
 					}
 					return map;
 				}, {}),
 				canDropTo: [],
 				elementName() { return def.element },
 				hasText() { return allowText },
-				menu: [
-					
-				],
+				menu: [{
+					caption: 'Add attributes',
+					menu: def.attributes.map<XonomyMenuActionExternal>(attId => {
+						const spec = rng.attributes[attId];
+						return {
+							action: Xonomy.newAttribute,
+							actionParameter: rng.attributes[attId],
+							caption: `Add @${spec.name}`,
+							hideIf(inst: XonomyElementInstance) { return inst.getAttribute(attId) != null; },
+						}
+					}),
+				}, {
+					caption: 'Add child elements',
+					menu: menu(rng, def.children)
+				
+				}]
 			}
 			return map;
 		}, {}),
@@ -239,6 +198,81 @@ function element(rng: Rng, elementId: string, depth = 0): string {
 </${el.element}>`
 }
 
+
 export function initialDocument(rng: Rng): string {
 	return element(rng, rng.root, 0);
 }
+
+// hoe kunnen we xonomy menu rendering overriden
+// hmm
+
+const originalMakeBubble = Xonomy.makeBubble;
+Xonomy.makeBubble = function(content: string|HTMLElement) {
+	if (typeof content === 'string') return originalMakeBubble(content);
+	
+	Xonomy.destroyBubble();
+	const bubble = parseHtml(removeFalsy`
+	<div id="xonomyBubble" class="${Xonomy.mode}">
+		<div class='inside' onclick='Xonomy.notclick=true;'><div id='xonomyBubbleContent'></div></div>
+	</div>`);
+	bubble.querySelector('#xonomyBubbleContent')!.appendChild(content);
+	return bubble;
+}
+
+
+function parseHtml<T extends HTMLElement = HTMLDivElement>(s: string): T {
+	const helper = document.createElement('div');
+	helper.innerHTML = s;
+	return helper.removeChild(helper.firstChild!) as T;
+}
+
+function removeFalsy(strings: TemplateStringsArray, ...expressions: any[]) {
+	let r = ''
+	for (let i = 0; i < strings.length; ++i) {
+		r += strings[i].trim();
+		r += ' ';
+		if (expressions[i]) r += expressions[i] + ' ';
+	}
+	return r;
+}
+
+Xonomy.internalMenu = function(htmlID: string, items: XonomyMenuAction[], harvest: (typeof Xonomy)['harvestElement'|'harvestAttribute'|'harvestText'] ) {
+	const inst = harvest(document.getElementById(htmlID)!);
+	const ownItem = parseHtml(`<div class='menu'></div>`);
+
+	// render the menu options, make sure to instantiate the elements already.
+	for (const item of items) {
+		Xonomy.verifyDocSpecMenuItem(item);
+		const {icon, keyTrigger, keyCaption, menu: menuOptions = [], expanded, caption, action, actionParameter} = item;
+		const menuItem = parseHtml(removeFalsy`
+			<div class='menuItem ${expanded(inst) && 'expanded'}'>
+				<div class='menuLabel focusme' tabindex='0'> 
+					${/*icon*/ icon && `<span class='icon'><img src='${icon}'/></span>`}
+					${/*text*/ Xonomy.formatCaption(Xonomy.textByLang(caption(inst)))}
+				</div>
+			</div>
+		`);
+		const label = menuItem.querySelector('.menuLabel') as HTMLDivElement|undefined;
+		if (label) {
+			label?.addEventListener('keydown', function(event) { if(Xonomy.keyNav && [37, 39].indexOf(event.which)>-1) Xonomy.toggleSubmenu(this.parentElement!) });
+			label?.addEventListener('click', function() { Xonomy.toggleSubmenu(this.parentElement!) });
+		}
+
+		// for the child, replace the class with 'submenu'
+		// and always wrap self in 'menu'
+		
+		if (menuOptions.length) {
+			const subMenu = Xonomy.internalMenu(htmlID, menuOptions, harvest, undefined as any, undefined as any) as any as HTMLDivElement;
+			subMenu.classList.replace('menu', 'submenu');
+			subMenu.classList.toggle('expanded', expanded(inst));
+			menuItem.appendChild(subMenu);
+		} else {
+			menuItem.addEventListener('click', function() { (action as any)(htmlID, actionParameter, menuItem); });
+		}
+
+		ownItem.appendChild(menuItem);
+		(item as any)._html = ownItem;
+	}
+	
+	return ownItem;
+} as any;

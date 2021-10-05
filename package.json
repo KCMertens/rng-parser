@@ -40,7 +40,8 @@
     "xml-formatter": "^2.4.0"
   },
   "dependencies": {
-    "@kcmertens/xonomy": "file:../xonomy",
+    "@kcmertens/xonomy": "0.0.9",
+    "hotkeys-js": "^3.8.7",
     "saxon-js": "^2.2.0",
     "xslt3": "^2.2.0"
   }

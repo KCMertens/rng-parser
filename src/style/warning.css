@@ -1,3 +1,7 @@
 .warning {
 	white-space: pre;
 }
+
+.menuItem.checked {
+	outline: 1px solid red;
+}
