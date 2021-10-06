@@ -21,6 +21,58 @@ const keyTrigger = (k: Key, mods: ModifierKey[] = []): {
 	}
 }
 
+/**
+ * create the options for a context menu to set the element's children according to the spec
+ * example
+ * 
+ * AND(a,b,c, OR(AND(d,e), f))
+ * -----
+ * (a+b+c) + one of every choice below
+ *   1.
+ *   - d+e
+ *   - f
+ * 
+ * AND(OR(a,b,c), OR(d,e,f))
+ * -----
+ * One of every choice below
+ *  1. 
+ *  - a
+ *  - b
+ *  - c
+ *  2. 
+ *  - d
+ *  - e
+ *  - f
+ * 
+ * 
+ * AND(
+	a,
+	OR(
+		f,
+		AND(
+			b,
+			OR(
+				q,
+				AND(c,d),
+				AND(e,f)
+			)
+		)
+	),
+	OR(g,h)
+)
+
+ a + one of every choice below
+   1. 
+   - f
+   - b + one of every choice below (collapse intermediate level when only one OR is present?)
+     1. 
+	 - q
+	 - c+d
+	 - e+f
+   2. 
+   - g
+   - h
+ */
 
 function menu(rng: Rng, specs: readonly RngChildSpec[]): XonomyMenuActionExternal[] {
 	function refOption(spec: RngRef, parent?: RngChildSpec): XonomyMenuActionExternal {
@@ -33,12 +85,12 @@ function menu(rng: Rng, specs: readonly RngChildSpec[]): XonomyMenuActionExterna
 		}
 	}
 
-	function orOption(spec: RngChildSpec, parent?: RngChildSpec): XonomyMenuActionExternal {
+	function orOption(spec: RngChildSpec, parent: RngChildSpec|undefined): XonomyMenuActionExternal {
 		return {
 			caption: 'Pick one',
 			menu: [
 				...spec.children.filter(c => isRef(c)).map(o => refOption(o as RngRef, spec)),
-				...spec.children.filter(c => !isRef(c)).map((o: RngChildSpec) => o.type === 'and' ? andOption(o, spec, true) : orOption(o, spec))
+				...spec.children.filter(c => !isRef(c)).map((o: RngChildSpec) => o.type === 'and' ? andOption(o, spec) : orOption(o, spec))
 			],
 		}
 	}
@@ -50,23 +102,22 @@ function menu(rng: Rng, specs: readonly RngChildSpec[]): XonomyMenuActionExterna
 		}
 		return false;
 	}
-	function andOption(spec: RngChildSpec, parent: RngChildSpec|undefined, forceChoices = false): XonomyMenuActionExternal {
-		const requiredRefs = spec.children.filter(c => isRef(c) && !c.optional) as RngRef[];
-		const requiredChoices = spec.children.filter(c => !isRef(c) && (forceChoices || isRequired(c))) as RngChildSpec[];
-		
-		if (!requiredRefs.length && !requiredChoices.length) throw new Error('all options should have something be required.');
 
+	function andOption(spec: RngChildSpec, parent: RngChildSpec|undefined): XonomyMenuActionExternal {
+		const requiredRefs = spec.children.filter(c => isRef(c) && !c.optional) as RngRef[];
+		const requiredChoices = spec.children.filter(c => !isRef(c)) as RngChildSpec[];
+		
 		return {
-			caption: requiredRefs.map(r => `<${rng.elements[r.id].element}>`).join('+') + ' and one of each section below',
-			menu: requiredChoices.map(s => s.type === 'and' ? andOption(s, spec, forceChoices) : orOption(s, spec))
+			caption: requiredRefs.map(r => `<${rng.elements[r.id].element}>`).join('+') + (requiredChoices.length ? ' with the following contents' : ''),
+			menu: requiredChoices.length === 1 ? orOption(requiredChoices[0], spec).menu : requiredChoices.map(c => orOption(c, spec)),
 		}
 	}
 
-	return specs.filter(s => isRef(s) ? !s.optional : isRequired(s)).map(s => 
-		isRef(s) ? refOption(s)
-		: s.type === 'and' ? andOption(s, undefined) 
-		: orOption(s)
-	);
+	// assume the following
+	// there is only one top-level element
+	// and that is always an interesting element, or or and
+
+	return specs.filter(s => !isRef(s) && isRequired(s)).map(s => s.type === 'and' ? andOption(s, undefined) : orOption(s, undefined));
 }
 
 export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
