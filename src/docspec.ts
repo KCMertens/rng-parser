@@ -75,49 +75,26 @@ const keyTrigger = (k: Key, mods: ModifierKey[] = []): {
  */
 
 function menu(rng: Rng, specs: readonly RngChildSpec[]): XonomyMenuActionExternal[] {
-	function refOption(spec: RngRef, parent?: RngChildSpec): XonomyMenuActionExternal {
-		return {
-			caption: `<${rng.elements[spec.id].element}>`,
-			action: function(htmlID: string, param: any, el: HTMLDivElement) {
-				el.classList.toggle('checked');
-				// spec.check(spec);
-			} as any,
+	const r = [] as XonomyMenuActionExternal[];
+	const s: Array<RngRef|RngChildSpec> = [...specs];
+	let cur: RngChildSpec|RngRef;
+	const seenRefs = new Set<string>();
+	while (cur = s.pop()!) {
+		if (!isRef(cur)) {
+			s.push(...cur.children);
+			continue;
+		}
+		if (!seenRefs.has(cur.id)) {
+			seenRefs.add(cur.id);
+			r.push({
+				action: Xonomy.newElementChild,
+				actionParameter: element(rng, cur.id, 0),
+				caption: `<${rng.elements[cur.id].element}>`,
+				hideIf(inst: XonomyElementInstance) { return inst.hasChildElement((cur as RngRef).id); }
+			})
 		}
 	}
-
-	function orOption(spec: RngChildSpec, parent: RngChildSpec|undefined): XonomyMenuActionExternal {
-		return {
-			caption: 'Pick one',
-			menu: [
-				...spec.children.filter(c => isRef(c)).map(o => refOption(o as RngRef, spec)),
-				...spec.children.filter(c => !isRef(c)).map((o: RngChildSpec) => o.type === 'and' ? andOption(o, spec) : orOption(o, spec))
-			],
-		}
-	}
-	
-	function isRequired(s: RngChildSpec): boolean {
-		for (const c of s.children) {
-			if (!isRef(c)) return isRequired(c);
-			else if (!c.optional) return true;
-		}
-		return false;
-	}
-
-	function andOption(spec: RngChildSpec, parent: RngChildSpec|undefined): XonomyMenuActionExternal {
-		const requiredRefs = spec.children.filter(c => isRef(c) && !c.optional) as RngRef[];
-		const requiredChoices = spec.children.filter(c => !isRef(c)) as RngChildSpec[];
-		
-		return {
-			caption: requiredRefs.map(r => `<${rng.elements[r.id].element}>`).join('+') + (requiredChoices.length ? ' with the following contents' : ''),
-			menu: requiredChoices.length === 1 ? orOption(requiredChoices[0], spec).menu : requiredChoices.map(c => orOption(c, spec)),
-		}
-	}
-
-	// assume the following
-	// there is only one top-level element
-	// and that is always an interesting element, or or and
-
-	return specs.filter(s => !isRef(s) && isRequired(s)).map(s => s.type === 'and' ? andOption(s, undefined) : orOption(s, undefined));
+	return r;
 }
 
 export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
@@ -157,7 +134,9 @@ export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 				}, {
 					caption: 'Add child elements',
 					menu: menu(rng, def.children)
-				
+				}, {
+					caption: `Delete <${rng.elements[def.id].element}>`,
+					action: Xonomy.deleteElement,
 				}]
 			}
 			return map;
@@ -218,6 +197,7 @@ export function rngToDocspec(rng: Rng): XonomyDocSpecExternal {
 			else { return elementName; }
 		}
 	}
+	console.log(spec);
 	return spec;
 }
 
